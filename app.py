@@ -301,7 +301,7 @@ def auction():
                     df.at[i, "sold_price"] = sold_price
                     df.at[i, "sold_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     save_players(df)
-                    flash(f"Sold player #{pid} to {team} for ₹{sold_price:,}.", "success")
+                    flash(f"Sold player #{pid} to {team} for ₹{format_indian_currency(sold_price)}.", "success")
 
         elif action == "revert":
             idx = df.index[df["player_id"] == pid]
@@ -356,7 +356,7 @@ def results():
     
     players_unsold = df[(df["status"].astype(str).str.lower() != "sold") & (df["status"].astype(str).str.lower() != "captain")].to_dict(orient="records")
     players_sold = df[df["status"].astype(str).str.lower() == "sold"].to_dict(orient="records")
-    return render_template("auction.html", players_unsold=players_unsold, players_sold=players_sold, team_budgets=team_spending, total_budget=TEAM_BUDGET, is_admin=False)
+    return render_template("auction.html", players_unsold=players_unsold, players_sold=players_sold, team_budgets=team_spending, total_budget=TEAM_BUDGET, is_admin=False, sold_first=True)
 
 @app.route("/live-bidding/<int:player_id>", methods=["GET", "POST"])
 def live_bidding(player_id):

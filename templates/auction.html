@@ -54,12 +54,42 @@
       {% endfor %}
     </div>
 
+    {% if sold_first %}
+    <h2>Sold Players</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Team</th>
+            <th>Sold Price</th>
+            <th>Sold At</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in players_sold %}
+          <tr class="sold">
+            <td>{{ p.player_id }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.team }}</td>
+            <td>₹{{ format_currency(p.sold_price) if p.sold_price not in ('', None) else '-' }}</td>
+            <td>{{ p.sold_at }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top: 32px;">Unsold Players</h2>
+    {% else %}
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2>Unsold Players</h2>
       {% if is_admin %}
       <button onclick="showOrderSelection()" class="btn" style="background: #10b981;">Start Auction</button>
       {% endif %}
     </div>
+    {% endif %}
     {% if is_admin %}
     <div style="margin-bottom: 16px; font-size: 14px; color: #94a3b8;">
       <strong>Increment Slabs:</strong> ₹50L-1Cr: 10L | ₹1-2Cr: 25L | ₹2Cr+: 50L
@@ -131,6 +161,7 @@
       </table>
     </div>
 
+    {% if not sold_first %}
     <h2>Sold Players</h2>
     <div class="table-wrap">
       <table>
@@ -168,6 +199,7 @@
         </tbody>
       </table>
     </div>
+    {% endif %}
 
   </div>
 
