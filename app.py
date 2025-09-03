@@ -175,6 +175,7 @@ def save_players(df):
             df[c] = ""
     df = df[columns_order]
     df.to_csv(DATA_FILE, index=False)
+    print(f"DEBUG: Saved players to {DATA_FILE}, file exists: {os.path.exists(DATA_FILE)}")
 
 @app.route("/")
 def index():
@@ -383,10 +384,11 @@ def live_bidding(player_id):
             current_auction["current_team"] = team
             current_auction["status"] = "bidding"
             
-        elif action == "going":
-            current_auction["status"] = "going"
-            
         elif action == "sold":
+            # If no bid placed, sell at base price
+            if current_auction["current_bid"] == 0:
+                current_auction["current_bid"] = player["base_price"]
+                current_auction["current_team"] = request.form.get("team", "")
             # Mark as sold in CSV
             idx = df.index[df["player_id"] == player_id][0]
             df.at[idx, "team"] = current_auction["current_team"]
@@ -401,7 +403,7 @@ def live_bidding(player_id):
             current_auction["current_team"] = ""
             current_auction["status"] = "waiting"
             
-            flash(f"SOLD! {player['name']} to {current_auction['current_team']} for ₹{current_auction['current_bid']:,}", "success")
+            flash(f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{df.at[idx, 'sold_price']:,}", "success")
             return redirect(url_for("auction"))
     
     return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS)
@@ -894,7 +896,9 @@ def upload_player_photo():
         # Save resized image
         filename = f"player_{player_id}.jpg"
         file_path = os.path.join(app.static_folder, 'players', filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         image.save(file_path, 'JPEG', quality=85, optimize=True)
+        print(f"DEBUG: Saved photo to {file_path}, file exists: {os.path.exists(file_path)}")
         
         # Update player record with photo filename
         df = load_players()

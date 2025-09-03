@@ -72,17 +72,19 @@
             <option value="{{ team }}" {% if team == auction_state.current_team %}selected{% endif %}>{{ team }}</option>
             {% endfor %}
           </select>
-          <input type="number" name="bid_amount" value="{{ auction_state.current_bid + 1000000 }}" min="{{ auction_state.current_bid + 1000000 }}" step="500000" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
+          <select name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
+            <option value="">Select Bid</option>
+            {% for price in get_bid_increments(auction_state.current_bid) %}
+            <option value="{{ price }}">₹{{ format_currency(price) }}</option>
+            {% endfor %}
+          </select>
           <button class="btn" name="action" value="update_bid">Update Bid</button>
         </div>
       </form>
       
       <div style="display: flex; gap: 12px; margin-top: 16px;">
         <form method="post" style="display: inline;">
-          <button class="btn" name="action" value="going" style="background: #f59e0b;">Going Once!</button>
-        </form>
-        <form method="post" style="display: inline;">
-          <button class="btn" name="action" value="sold" style="background: #dc2626;">SOLD!</button>
+          <button class="btn" name="action" value="sold" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
         </form>
       </div>
     </div>
