@@ -140,7 +140,7 @@ def get_auction_price_options(base_price):
 
 # Make functions available in templates
 import time
-app.jinja_env.globals.update(int=int, format_currency=format_indian_currency, get_bid_increments=get_bid_increments, get_auction_price_options=get_auction_price_options, timestamp=lambda: int(time.time()))
+app.jinja_env.globals.update(int=int, format_currency=format_indian_currency, get_bid_increments=get_bid_increments, get_auction_price_options=get_auction_price_options, timestamp=lambda: int(time.time()), CONFIG=CONFIG)
 
 # Add filter for replacing empty values with dash
 @app.template_filter('dash_if_empty')
