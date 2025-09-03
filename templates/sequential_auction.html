@@ -106,7 +106,9 @@
         <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
           <button class="btn" name="action" value="sold" style="background: #10b981;">SOLD!</button>
         </form>
-
+        <form method="post" action="{{ url_for('next_player') }}" style="display: inline;">
+          <button class="btn" name="action" value="skip" style="background: #dc2626;">SKIP</button>
+        </form>
       </div>
     </div>
     {% endif %}
