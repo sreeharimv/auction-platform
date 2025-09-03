@@ -83,7 +83,7 @@
           <tr data-category="{{ p.role or '' }}">
               <td>{{ loop.index }}</td>
               <td>{{ p.name|dash_if_empty }}</td>
-              <td><span class="category-badge {{ (p.role or '').lower() }}">{{ p.role|dash_if_empty }}</span></td>
+              <td>{{ p.role|dash_if_empty }}</td>
               <td>₹{{ format_currency(p.base_price) if p.base_price not in ('', None) else '-' }}</td>
               {% if is_admin %}
               <td>
