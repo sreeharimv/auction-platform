@@ -403,7 +403,7 @@ def live_bidding(player_id):
             current_auction["current_team"] = ""
             current_auction["status"] = "waiting"
             
-            flash(f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{df.at[idx, 'sold_price']:,}", "success")
+            flash(f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{format_indian_currency(df.at[idx, 'sold_price'])}", "success")
             return redirect(url_for("auction"))
     
     return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS)
