@@ -29,11 +29,13 @@
       {% endif %}
     {% endwith %}
 
+    <!-- Current Player -->
     <div class="grid" style="margin-bottom: 20px;">
-      <div class="card">
-        <div class="label">Player</div>
-        <div class="metric" style="font-size: 24px;">{{ player.name }}</div>
-        <div style="color: #94a3b8;">{{ player.role }}</div>
+      <div class="card" style="text-align: center; padding: 30px;">
+        <div class="label" style="margin-bottom: 20px;">Current Player</div>
+        <img src="{{ url_for('static', filename='players/' + (player.photo or 'default.png')) }}?t={{ timestamp() }}" alt="{{ player.name }}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #93c5fd; margin: 0 auto 20px; display: block; box-shadow: 0 8px 32px rgba(147, 197, 253, 0.3);" onerror="this.src='{{ url_for('static', filename='players/default.png') }}'">
+        <div class="metric" style="font-size: 32px; margin-bottom: 8px;">{{ player.name }}</div>
+        <div style="color: #94a3b8; font-size: 16px;">{{ player.role }}</div>
       </div>
       <div class="card">
         <div class="label">Base Price</div>
@@ -62,8 +64,9 @@
     {% endif %}
 
     {% if auction_state.status in ["bidding", "going"] %}
+    <!-- Bidding Controls -->
     <div class="card">
-      <h3>Update Bid</h3>
+      <h3>Place Bid</h3>
       <form method="post">
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
           <select name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
