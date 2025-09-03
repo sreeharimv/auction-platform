@@ -1,0 +1,130 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Palace Premier League Auction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>Palace Premier League</h1>
+    </div>
+    <nav style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('players') }}">Players</a>
+      <a href="{{ url_for('teams') }}">Teams</a>
+      <a href="{{ url_for('results') }}">Live Results</a>
+      <a href="{{ url_for('admin') }}">Admin</a>
+    </nav>
+    
+    <!-- Filter Section -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+        <div>
+          <label style="display: block; margin-bottom: 4px;">Filter by Role:</label>
+          <select id="roleFilter" onchange="filterPlayers()" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+            <option value="">All Roles</option>
+            <option value="Batsman">Batsman</option>
+            <option value="Bowler">Bowler</option>
+            <option value="All-Rounder">All-Rounder</option>
+            <option value="Wicket Keeper">Wicket Keeper</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 4px;">Filter by Status:</label>
+          <select id="statusFilter" onchange="filterPlayers()" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+            <option value="">All Status</option>
+            <option value="unsold">Unsold</option>
+            <option value="sold">Sold</option>
+            <option value="captain">Captain</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 4px;">Filter by Team:</label>
+          <select id="teamFilter" onchange="filterPlayers()" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+            <option value="">All Teams</option>
+            <option value="Palace Tuskers">Palace Tuskers</option>
+            <option value="Palace Titans">Palace Titans</option>
+            <option value="Palace Warriors">Palace Warriors</option>
+          </select>
+        </div>
+        <div>
+          <button onclick="clearFilters()" class="btn secondary" style="width: 100%;">Clear Filters</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Batting</th>
+            <th>Bowling</th>
+            <th>Base Price</th>
+            <th>Team</th>
+            <th>Status</th>
+            <th>Sold Price</th>
+            <th>Sold At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in players %}
+          <tr class="{{ 'sold' if (p.status|string).lower() == 'sold' else '' }}" data-role="{{ p.role or '' }}" data-status="{{ p.status or '' }}" data-team="{{ p.team or '' }}">
+            <td>{{ p.player_id }}</td>
+            <td>{{ p.name|dash_if_empty }}</td>
+            <td>{{ p.role|dash_if_empty }}</td>
+            <td>{{ p.batting_style|dash_if_empty }}</td>
+            <td>{{ p.bowling_style|dash_if_empty }}</td>
+            <td>₹{{ format_currency(p.base_price) if p.base_price not in ('', None) else '-' }}</td>
+            <td>{{ p.team|dash_if_empty }}</td>
+            <td>{{ p.status|dash_if_empty }}</td>
+            <td>{{ '₹' + format_currency(p.sold_price) if p.sold_price not in ('', None, 0) else '-' }}</td>
+            <td>{{ p.sold_at|dash_if_empty }}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <script>
+    function filterPlayers() {
+      const roleFilter = document.getElementById('roleFilter').value;
+      const statusFilter = document.getElementById('statusFilter').value;
+      const teamFilter = document.getElementById('teamFilter').value;
+      
+      const rows = document.querySelectorAll('tbody tr');
+      
+      rows.forEach(row => {
+        const role = row.getAttribute('data-role');
+        const status = row.getAttribute('data-status');
+        const team = row.getAttribute('data-team');
+        
+        const roleMatch = !roleFilter || role === roleFilter;
+        const statusMatch = !statusFilter || status === statusFilter;
+        const teamMatch = !teamFilter || team === teamFilter;
+        
+        if (roleMatch && statusMatch && teamMatch) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    function clearFilters() {
+      document.getElementById('roleFilter').value = '';
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('teamFilter').value = '';
+      filterPlayers();
+    }
+  </script>
+</body>
+</html>

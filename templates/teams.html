@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team Squads - Palace Premier League</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>Palace Premier League</h1>
+    </div>
+    <nav style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('players') }}">Players</a>
+      <a href="{{ url_for('teams') }}">Teams</a>
+      <a href="{{ url_for('results') }}">Live Results</a>
+      <a href="{{ url_for('admin') }}">Admin</a>
+    </nav>
+
+    <div style="display: flex; justify-content: center; width: 100%; margin-top: 20px;"><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; width: 100%; max-width: 1200px;">
+    {% for team_name, team_info in team_data.items() %}
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="margin: 0;">{{ team_name }}</h2>
+          <div style="text-align: right;">
+            <div style="font-size: 18px; font-weight: bold;">{{ team_info.count }} {{ 'Player' if team_info.count == 1 else 'Players' }}</div>
+            <div style="color: #94a3b8; font-size: 14px;">₹{{ format_currency(team_info.spent) }} spent</div>
+            <div style="color: #94a3b8; font-size: 12px;">₹{{ format_currency(team_info.remaining) }} remaining</div>
+          </div>
+        </div>
+        
+        {% if team_info.players %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: center; width: 250px;">Name</th>
+                <th style="text-align: center; width: 200px;">Category</th>
+                <th style="text-align: center; width: 150px;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for player in team_info.players %}
+              <tr>
+                <td style="text-align: center; padding: 12px; white-space: nowrap;">{{ player.name|dash_if_empty }}</td>
+                <td style="text-align: center; padding: 12px;">{{ player.role|dash_if_empty }}</td>
+                <td style="text-align: center; padding: 12px;">
+                  {% if player.status == 'captain' %}
+                    <span style="color: #f59e0b;">Captain</span>
+                  {% else %}
+                    ₹{{ format_currency(player.sold_price) if player.sold_price else '-' }}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; color: #94a3b8; padding: 20px;">
+          No players assigned yet
+        </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div></div>
+
+  </div>
+</body>
+</html>

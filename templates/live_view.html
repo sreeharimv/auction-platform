@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Auction View</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta http-equiv="refresh" content="3">
+</head>
+<body>
+  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>Palace Premier League</h1>
+    </div>
+    
+    <nav style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('players') }}">Players</a>
+      <a href="{{ url_for('teams') }}">Teams</a>
+      <a href="{{ url_for('results') }}">Live Results</a>
+      <a href="{{ url_for('admin') }}">Admin</a>
+      <button onclick="location.reload()" class="btn" style="margin-left: auto;">Refresh</button>
+    </nav>
+
+    {% if current_player %}
+    <div class="grid" style="margin-bottom: 20px;">
+      <div class="card">
+        <div class="label">Current Player</div>
+        <div class="metric" style="font-size: 28px;">{{ current_player.name }}</div>
+        <div style="color: #94a3b8;">{{ current_player.role }} | {{ current_player.category }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Base Price</div>
+        <div class="metric">₹{{ format_currency(current_player.base_price) }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Current Bid</div>
+        <div class="metric" style="color: #10b981;">₹{{ format_currency(auction_state.current_bid) }}</div>
+        <div style="color: #94a3b8;">{{ auction_state.current_team or "No bids yet" }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Status</div>
+        <div class="metric" style="font-size: 20px; text-transform: uppercase; 
+             color: {% if auction_state.status == 'going' %}#f59e0b{% elif auction_state.status == 'bidding' %}#10b981{% else %}#94a3b8{% endif %};">
+          {{ auction_state.status }}
+          {% if auction_state.status == 'going' %}🔥{% elif auction_state.status == 'bidding' %}⚡{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if auction_state.status == "going" %}
+    <div class="card" style="background: #7f1d1d; border-color: #dc2626; text-align: center;">
+      <h2 style="color: #fca5a5; margin: 0;">GOING ONCE! GOING TWICE!</h2>
+      <div style="font-size: 24px; color: white; margin-top: 8px;">
+        {{ current_player.name }} - ₹{{ format_currency(auction_state.current_bid) }} - {{ auction_state.current_team }}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="card" style="text-align: center;">
+      <h2>No Active Auction</h2>
+      <p style="color: #94a3b8;">Waiting for next player...</p>
+    </div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

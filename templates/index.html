@@ -1,0 +1,39 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Palace Premier League Auction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>Palace Premier League</h1>
+    </div>
+    <nav style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('players') }}">Players</a>
+      <a href="{{ url_for('teams') }}">Teams</a>
+      <a href="{{ url_for('results') }}">Live Results</a>
+      <a href="{{ url_for('admin') }}">Admin</a>
+    </nav>
+    <section class="grid">
+      <div class="card">
+        <div class="metric">{{ total }}</div>
+        <div class="label">Total Players</div>
+      </div>
+      <div class="card">
+        <div class="metric">{{ sold }}</div>
+        <div class="label">Sold</div>
+      </div>
+      <div class="card">
+        <div class="metric">{{ unsold }}</div>
+        <div class="label">Unsold</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

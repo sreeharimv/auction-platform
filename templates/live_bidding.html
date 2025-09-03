@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Bidding - {{ player.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>Live Auction - {{ player.name }}</h1>
+    </div>
+    
+    <nav>
+      <a href="{{ url_for('auction') }}">← Back to Auction</a>
+      <a href="{{ url_for('live_view') }}" target="_blank">Public View</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid" style="margin-bottom: 20px;">
+      <div class="card">
+        <div class="label">Player</div>
+        <div class="metric" style="font-size: 24px;">{{ player.name }}</div>
+        <div style="color: #94a3b8;">{{ player.role }} | {{ player.category }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Base Price</div>
+        <div class="metric">₹{{ format_currency(player.base_price) }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Current Bid</div>
+        <div class="metric" style="color: #10b981;">₹{{ format_currency(auction_state.current_bid) }}</div>
+        <div style="color: #94a3b8;">{{ auction_state.current_team or "No bids yet" }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Status</div>
+        <div class="metric" style="font-size: 18px; text-transform: uppercase;">{{ auction_state.status }}</div>
+      </div>
+    </div>
+
+    {% if auction_state.status == "waiting" %}
+    <div class="card">
+      <h3>Start Bidding</h3>
+      <form method="post">
+        <button class="btn" name="action" value="start_bidding" style="font-size: 18px; padding: 12px 24px;">
+          Start Bidding at ₹{{ format_currency(player.base_price) }}
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if auction_state.status in ["bidding", "going"] %}
+    <div class="card">
+      <h3>Update Bid</h3>
+      <form method="post">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <select name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
+            <option value="">Select Team</option>
+            {% for team in teams %}
+            <option value="{{ team }}" {% if team == auction_state.current_team %}selected{% endif %}>{{ team }}</option>
+            {% endfor %}
+          </select>
+          <input type="number" name="bid_amount" value="{{ auction_state.current_bid + 1000000 }}" min="{{ auction_state.current_bid + 1000000 }}" step="500000" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
+          <button class="btn" name="action" value="update_bid">Update Bid</button>
+        </div>
+      </form>
+      
+      <div style="display: flex; gap: 12px; margin-top: 16px;">
+        <form method="post" style="display: inline;">
+          <button class="btn" name="action" value="going" style="background: #f59e0b;">Going Once!</button>
+        </form>
+        <form method="post" style="display: inline;">
+          <button class="btn" name="action" value="sold" style="background: #dc2626;">SOLD!</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

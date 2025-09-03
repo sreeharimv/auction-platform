@@ -1,0 +1,267 @@
+PALACE PREMIER LEAGUE - DETAILED AUCTION REPORT
+===============================================
+
+AUCTION SETTINGS:
+- Budget per team: ₹25 Crores
+- Base price: ₹50 Lakhs
+- Sequential auction format
+- Max bid formula: Remaining Budget - (Players Still Needed × Base Price)
+- Realistic team behavior: Teams avoid accumulating too many weak players
+
+CAPTAINS SELECTED:
+- Palace Tuskers: Arjun (90 rating)
+- Palace Titans: Marsh (92 rating)  
+- Palace Warriors: Ram Manohar (90 rating)
+
+AUCTION SEQUENCE (23 players):
+==============================
+1. Sreekanth (Rating: 92)
+2. Kannan (Rating: 50)
+3. Sidharth (Rating: 85)
+4. Ashith (Rating: 65)
+5. Sreehari (Rating: 93)
+6. Unnikrishnan (Rating: 60)
+7. Sabarish (Rating: 85)
+8. Raj Narayanan (Rating: 65)
+9. Appu (Rating: 90)
+10. Ramkumar (Rating: 50)
+11. Penakkan (Rating: 85)
+12. Renjith (Rating: 75)
+13. Hari (Rating: 91)
+14. Abhilash (Rating: 85)
+15. Raman Mpilly (Rating: 65)
+16. Govind M (Rating: 90)
+17. Arjun M (Rating: 75)
+18. Nandu (Rating: 90)
+19. Arun Chandran (Rating: 65)
+20. Arun Kasi (Rating: 90)
+21. Vysakh (Rating: 75)
+22. Kiran (Rating: 90)
+23. Vedu (Rating: 75)
+
+ROUND-BY-ROUND AUCTION DETAILS:
+===============================
+
+--- Round 1: Sreekanth (Rating: 92) ---
+Palace Tuskers: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+Palace Titans: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Tuskers for ₹6.2Cr
+
+--- Round 2: Kannan (Rating: 50) ---
+Palace Tuskers: 2 players, ₹18.8Cr left, need 6 more → Max bid: ₹15.8Cr
+Palace Titans: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Tuskers for ₹0.5Cr
+
+--- Round 3: Sidharth (Rating: 85) ---
+Palace Tuskers: 3 players, ₹18.3Cr left, need 5 more → Max bid: ₹15.8Cr
+Palace Titans: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Titans for ₹3.3Cr
+
+--- Round 4: Ashith (Rating: 65) ---
+Palace Tuskers: 3 players, ₹18.3Cr left, need 5 more → Max bid: ₹15.8Cr
+Palace Titans: 2 players, ₹21.7Cr left, need 6 more → Max bid: ₹18.7Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Tuskers for ₹1.3Cr
+
+--- Round 5: Sreehari (Rating: 93) ---
+Palace Tuskers: 4 players, ₹17.0Cr left, need 4 more → Max bid: ₹15.0Cr
+Palace Titans: 2 players, ₹21.7Cr left, need 6 more → Max bid: ₹18.7Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Titans for ₹6.9Cr
+
+--- Round 6: Unnikrishnan (Rating: 60) ---
+Palace Tuskers: 4 players, ₹17.0Cr left, need 4 more → Max bid: ₹15.0Cr
+Palace Titans: 3 players, ₹14.7Cr left, need 5 more → Max bid: ₹12.2Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Titans for ₹0.5Cr
+
+--- Round 7: Sabarish (Rating: 85) ---
+Palace Tuskers: 4 players, ₹17.0Cr left, need 4 more → Max bid: ₹15.0Cr
+Palace Titans: 4 players, ₹14.2Cr left, need 4 more → Max bid: ₹12.2Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Titans for ₹2.3Cr
+
+--- Round 8: Raj Narayanan (Rating: 65) ---
+Palace Tuskers: 4 players, ₹17.0Cr left, need 4 more → Max bid: ₹15.0Cr
+Palace Titans: 5 players, ₹12.0Cr left, need 3 more → Max bid: ₹10.5Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Titans for ₹1.8Cr
+
+--- Round 9: Appu (Rating: 90) ---
+Palace Tuskers: 4 players, ₹17.0Cr left, need 4 more → Max bid: ₹15.0Cr
+Palace Titans: 6 players, ₹10.2Cr left, need 2 more → Max bid: ₹9.2Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Tuskers for ₹5.4Cr
+
+--- Round 10: Ramkumar (Rating: 50) ---
+Palace Tuskers: 5 players, ₹11.6Cr left, need 3 more → Max bid: ₹10.1Cr
+Palace Titans: 6 players, ₹10.2Cr left, need 2 more → Max bid: ₹9.2Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+Note: Palace Tuskers reluctant (already has 1 low player), Palace Titans forced to bid
+✅ SOLD to Palace Titans for ₹0.5Cr
+
+--- Round 11: Penakkan (Rating: 85) ---
+Palace Tuskers: 5 players, ₹11.6Cr left, need 3 more → Max bid: ₹10.1Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 1 players, ₹25.0Cr left, need 7 more → Max bid: ₹21.5Cr
+✅ SOLD to Palace Warriors for ₹2.4Cr
+
+--- Round 12: Renjith (Rating: 75) ---
+Palace Tuskers: 5 players, ₹11.6Cr left, need 3 more → Max bid: ₹10.1Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 2 players, ₹22.6Cr left, need 6 more → Max bid: ₹19.6Cr
+✅ SOLD to Palace Warriors for ₹0.6Cr
+
+--- Round 13: Hari (Rating: 91) ---
+Palace Tuskers: 5 players, ₹11.6Cr left, need 3 more → Max bid: ₹10.1Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 3 players, ₹22.0Cr left, need 5 more → Max bid: ₹19.5Cr
+✅ SOLD to Palace Warriors for ₹6.3Cr
+
+--- Round 14: Abhilash (Rating: 85) ---
+Palace Tuskers: 5 players, ₹11.6Cr left, need 3 more → Max bid: ₹10.1Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 4 players, ₹15.7Cr left, need 4 more → Max bid: ₹13.7Cr
+✅ SOLD to Palace Warriors for ₹2.3Cr
+
+--- Round 15: Raman Mpilly (Rating: 65) ---
+Palace Tuskers: 5 players, ₹11.6Cr left, need 3 more → Max bid: ₹10.1Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 5 players, ₹13.4Cr left, need 3 more → Max bid: ₹11.9Cr
+✅ SOLD to Palace Tuskers for ₹1.1Cr
+
+--- Round 16: Govind M (Rating: 90) ---
+Palace Tuskers: 6 players, ₹10.4Cr left, need 2 more → Max bid: ₹9.4Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 5 players, ₹13.4Cr left, need 3 more → Max bid: ₹11.9Cr
+✅ SOLD to Palace Warriors for ₹3.9Cr
+
+--- Round 17: Arjun M (Rating: 75) ---
+Palace Tuskers: 6 players, ₹10.4Cr left, need 2 more → Max bid: ₹9.4Cr
+Palace Titans: 7 players, ₹9.7Cr left, need 1 more → Max bid: ₹9.2Cr
+Palace Warriors: 6 players, ₹9.5Cr left, need 2 more → Max bid: ₹8.5Cr
+✅ SOLD to Palace Titans for ₹1.1Cr
+
+--- Round 18: Nandu (Rating: 90) ---
+Palace Tuskers: 6 players, ₹10.4Cr left, need 2 more → Max bid: ₹9.4Cr
+Palace Titans: 8 players, ₹8.7Cr left, need 0 more → Max bid: ₹8.7Cr
+Palace Warriors: 6 players, ₹9.5Cr left, need 2 more → Max bid: ₹8.5Cr
+✅ SOLD to Palace Titans for ₹4.9Cr
+
+--- Round 19: Arun Chandran (Rating: 65) ---
+Palace Tuskers: 6 players, ₹10.4Cr left, need 2 more → Max bid: ₹9.4Cr
+Palace Warriors: 6 players, ₹9.5Cr left, need 2 more → Max bid: ₹8.5Cr
+Note: No team willing to bid (both have multiple average players already)
+✅ FORCED SALE to Palace Tuskers for ₹0.5Cr (highest budget)
+
+--- Round 20: Arun Kasi (Rating: 90) ---
+Palace Tuskers: 7 players, ₹9.9Cr left, need 1 more → Max bid: ₹9.4Cr
+Palace Warriors: 6 players, ₹9.5Cr left, need 2 more → Max bid: ₹8.5Cr
+✅ SOLD to Palace Warriors for ₹5.1Cr
+
+--- Round 21: Vysakh (Rating: 75) ---
+Palace Tuskers: 7 players, ₹9.9Cr left, need 1 more → Max bid: ₹9.4Cr
+Palace Warriors: 7 players, ₹4.4Cr left, need 1 more → Max bid: ₹3.9Cr
+✅ SOLD to Palace Tuskers for ₹2.0Cr
+
+--- Round 22: Kiran (Rating: 90) ---
+Palace Tuskers: 8 players, ₹7.9Cr left, need 0 more → Max bid: ₹7.9Cr
+Palace Warriors: 7 players, ₹4.4Cr left, need 1 more → Max bid: ₹3.9Cr
+✅ SOLD to Palace Tuskers for ₹5.7Cr
+
+--- Round 23: Vedu (Rating: 75) ---
+Palace Tuskers: 9 players - SQUAD FULL
+Palace Titans: 9 players - SQUAD FULL
+Palace Warriors: 7 players, ₹4.4Cr left, need 1 more → Max bid: ₹3.9Cr
+✅ SOLD to Palace Warriors for ₹1.3Cr
+
+FINAL RESULTS:
+==============
+
+PALACE TUSKERS (9 players, ₹2.2Cr left):
+1. Arjun (Captain) - 90 rating - FREE
+2. Sreekanth - 92 rating - ₹6.2Cr
+3. Kannan - 50 rating - ₹0.5Cr
+4. Ashith - 65 rating - ₹1.3Cr
+5. Appu - 90 rating - ₹5.4Cr
+6. Raman Mpilly - 65 rating - ₹1.1Cr
+7. Arun Chandran - 65 rating - ₹0.5Cr (forced sale)
+8. Vysakh - 75 rating - ₹2.0Cr
+9. Kiran - 90 rating - ₹5.7Cr
+Total Spent: ₹22.8Cr
+
+PALACE TITANS (9 players, ₹3.7Cr left):
+1. Marsh (Captain) - 92 rating - FREE
+2. Sidharth - 85 rating - ₹3.3Cr
+3. Sreehari - 93 rating - ₹6.9Cr
+4. Unnikrishnan - 60 rating - ₹0.5Cr
+5. Sabarish - 85 rating - ₹2.3Cr
+6. Raj Narayanan - 65 rating - ₹1.8Cr
+7. Ramkumar - 50 rating - ₹0.5Cr
+8. Arjun M - 75 rating - ₹1.1Cr
+9. Nandu - 90 rating - ₹4.9Cr
+Total Spent: ₹21.3Cr
+
+PALACE WARRIORS (8 players, ₹3.1Cr left):
+1. Ram Manohar (Captain) - 90 rating - FREE
+2. Penakkan - 85 rating - ₹2.4Cr
+3. Renjith - 75 rating - ₹0.6Cr
+4. Hari - 91 rating - ₹6.3Cr
+5. Abhilash - 85 rating - ₹2.3Cr
+6. Govind M - 90 rating - ₹3.9Cr
+7. Arun Kasi - 90 rating - ₹5.1Cr
+8. Vedu - 75 rating - ₹1.3Cr
+Total Spent: ₹21.9Cr
+
+AUCTION STATISTICS:
+===================
+- Total players: 26/26 (100% sold)
+- Total budget available: ₹75Cr
+- Total spent: ₹66.0Cr
+- Budget remaining: ₹9.0Cr
+- Average price per auctioned player: ₹2.87Cr
+- Highest sale: Sreehari (₹6.9Cr) to Palace Titans
+- Most expensive round: Round 5 (Sreehari ₹6.9Cr)
+- Base price sales: 3 players (Kannan, Unnikrishnan, Ramkumar)
+- Forced sale: 1 player (Arun Chandran)
+
+REALISTIC TEAM BEHAVIOR ANALYSIS:
+=================================
+1. **Low Player Distribution:**
+   - Palace Tuskers: 1 low player (Kannan-50)
+   - Palace Titans: 2 low players (Unnikrishnan-60, Ramkumar-50)
+   - Palace Warriors: 0 low players (strategic avoidance)
+
+2. **Strategic Decisions:**
+   - Round 10: Palace Tuskers avoided Ramkumar (already had Kannan)
+   - Round 19: Both teams reluctant for Arun Chandran → forced sale
+   - Palace Warriors consistently avoided low-rated players
+
+3. **Budget Management:**
+   - Palace Tuskers: Aggressive early, then strategic
+   - Palace Titans: Balanced approach throughout
+   - Palace Warriors: Quality-focused, smallest squad
+
+KEY INSIGHTS:
+=============
+1. Sequential auction format prevented any unsold players
+2. Realistic team behavior created better player distribution
+3. Max bid formula successfully prevented teams from overbidding
+4. Strategic sequence mixing high/low players worked effectively
+5. Teams showed realistic reluctance for accumulating weak players
+6. Forced sale mechanism handled edge cases perfectly
+7. Formula ensured all teams could complete minimum 8-player squads
+
+AUCTION SUCCESS METRICS:
+========================
+✅ All 26 players assigned to teams
+✅ No budget violations or overbidding
+✅ Realistic distribution: 9+9+8 players
+✅ Competitive bidding throughout
+✅ Strategic team behavior implemented
+✅ Better squad balance across teams
+✅ Max bid formula worked perfectly
+✅ Low-rated players distributed fairly

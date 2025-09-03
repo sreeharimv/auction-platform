@@ -1,0 +1,215 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tournament Settings - Palace Premier League</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>{{ config.tournament.name }}</h1>
+    </div>
+    <nav style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('players') }}">Players</a>
+      <a href="{{ url_for('teams') }}">Teams</a>
+      <a href="{{ url_for('results') }}">Live Results</a>
+      <a href="{{ url_for('admin') }}">Admin</a>
+      <a href="{{ url_for('player_management') }}">Manage Players</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <h2>Tournament Settings</h2>
+
+    <!-- Tournament Info -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Tournament Information</h3>
+      <form method="post" action="{{ url_for('update_tournament_info') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Tournament Name:</label>
+            <input type="text" name="tournament_name" value="{{ config.tournament.name }}" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Currency Symbol:</label>
+            <input type="text" name="currency" value="{{ config.auction.currency }}" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+          </div>
+        </div>
+        <button type="submit" class="btn">Update Tournament Info</button>
+      </form>
+    </div>
+
+    <!-- Logo Upload -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Tournament Logo</h3>
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('upload_logo') }}">
+        <div style="margin-bottom: 16px;">
+          <label>Upload New Logo:</label>
+          <input type="file" name="logo_file" accept=".png,.jpg,.jpeg,.gif" required style="margin-left: 12px;">
+          <button type="submit" class="btn" style="margin-left: 12px;">Upload Logo</button>
+        </div>
+        <div style="font-size: 14px; color: #94a3b8;">
+          Recommended: PNG format, 200x200px or similar square dimensions
+        </div>
+      </form>
+    </div>
+
+    <!-- Team Configuration -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Team Configuration</h3>
+      <form method="post" action="{{ url_for('update_teams') }}">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px;">Team Names:</label>
+          {% for i in range(config.teams.names|length) %}
+          <div style="margin-bottom: 8px;">
+            <input type="text" name="team_{{ i }}" value="{{ config.teams.names[i] }}" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 300px; margin-right: 8px;">
+            {% if i > 2 %}
+            <button type="button" onclick="removeTeam({{ i }})" class="btn" style="background: #dc2626; font-size: 12px; padding: 4px 8px;">Remove</button>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button type="button" onclick="addTeam()" class="btn secondary" style="margin-top: 8px;">Add Team</button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Team Budget:</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" name="budget_value" value="{{ (config.teams.budget / 10000000)|int if config.teams.budget >= 10000000 else (config.teams.budget / 100000)|int }}" required min="1" step="0.5" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100px;">
+              <select name="budget_unit" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px;">
+                <option value="crore" {% if config.teams.budget >= 10000000 %}selected{% endif %}>Crore</option>
+                <option value="lakh" {% if config.teams.budget < 10000000 %}selected{% endif %}>Lakh</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Min Players per Team:</label>
+            <input type="number" name="min_players" value="{{ config.teams.min_players }}" required min="6" max="15" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Max Players per Team:</label>
+            <input type="number" name="max_players" value="{{ config.teams.max_players }}" required min="8" max="20" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+          </div>
+        </div>
+        <button type="submit" class="btn">Update Team Settings</button>
+      </form>
+    </div>
+
+    <!-- Auction Rules -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Auction Rules</h3>
+      <form method="post" action="{{ url_for('update_auction_rules') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Base Price:</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" name="base_price_value" value="{{ (config.auction.base_price / 10000000)|int if config.auction.base_price >= 10000000 else (config.auction.base_price / 100000)|int }}" required min="1" step="0.5" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100px;">
+              <select name="base_price_unit" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px;">
+                <option value="crore" {% if config.auction.base_price >= 10000000 %}selected{% endif %}>Crore</option>
+                <option value="lakh" {% if config.auction.base_price < 10000000 %}selected{% endif %}>Lakh</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Bid Increments:</label>
+            <div style="margin-bottom: 8px;">
+              <label style="font-size: 12px; color: #94a3b8;">Tier 1 (Base to 2x Base):</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" name="increment_1_value" value="{{ (config.auction.increments[0] / 10000000)|int if config.auction.increments[0] >= 10000000 else (config.auction.increments[0] / 100000)|int }}" required min="1" step="0.5" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; width: 80px;">
+                <select name="increment_1_unit" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; font-size: 12px;">
+                  <option value="crore" {% if config.auction.increments[0] >= 10000000 %}selected{% endif %}>Cr</option>
+                  <option value="lakh" {% if config.auction.increments[0] < 10000000 %}selected{% endif %}>L</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <label style="font-size: 12px; color: #94a3b8;">Tier 2 (2x to 4x Base):</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" name="increment_2_value" value="{{ (config.auction.increments[1] / 10000000)|int if config.auction.increments[1] >= 10000000 else (config.auction.increments[1] / 100000)|int }}" required min="1" step="0.5" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; width: 80px;">
+                <select name="increment_2_unit" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; font-size: 12px;">
+                  <option value="crore" {% if config.auction.increments[1] >= 10000000 %}selected{% endif %}>Cr</option>
+                  <option value="lakh" {% if config.auction.increments[1] < 10000000 %}selected{% endif %}>L</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #94a3b8;">Tier 3 (4x Base+):</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" name="increment_3_value" value="{{ (config.auction.increments[2] / 10000000)|int if config.auction.increments[2] >= 10000000 else (config.auction.increments[2] / 100000)|int }}" required min="1" step="0.5" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; width: 80px;">
+                <select name="increment_3_unit" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; font-size: 12px;">
+                  <option value="crore" {% if config.auction.increments[2] >= 10000000 %}selected{% endif %}>Cr</option>
+                  <option value="lakh" {% if config.auction.increments[2] < 10000000 %}selected{% endif %}>L</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
+              Increments are applied based on current bid relative to base price
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn">Update Auction Rules</button>
+      </form>
+    </div>
+
+    <!-- Reset & Backup -->
+    <div class="card">
+      <h3>Reset & Backup</h3>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button onclick="resetToDefaults()" class="btn" style="background: #dc2626;">Reset to Defaults</button>
+        <a href="{{ url_for('export_config') }}" class="btn secondary">Export Config</a>
+        <form method="post" enctype="multipart/form-data" action="{{ url_for('import_config') }}" style="display: inline;">
+          <input type="file" name="config_file" accept=".json" style="margin-right: 8px;">
+          <button type="submit" class="btn secondary">Import Config</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let teamCount = {{ config.teams.names|length }};
+    
+    function addTeam() {
+      const container = document.querySelector('form[action="{{ url_for("update_teams") }}"] > div:first-child');
+      const newTeamDiv = document.createElement('div');
+      newTeamDiv.style.marginBottom = '8px';
+      newTeamDiv.innerHTML = `
+        <input type="text" name="team_${teamCount}" placeholder="New Team Name" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 300px; margin-right: 8px;">
+        <button type="button" onclick="removeTeam(${teamCount})" class="btn" style="background: #dc2626; font-size: 12px; padding: 4px 8px;">Remove</button>
+      `;
+      container.insertBefore(newTeamDiv, container.lastElementChild);
+      teamCount++;
+    }
+    
+    function removeTeam(index) {
+      const input = document.querySelector(`input[name="team_${index}"]`);
+      if (input) {
+        input.parentElement.remove();
+      }
+    }
+    
+    function resetToDefaults() {
+      if (confirm('Reset all settings to default values? This cannot be undone!')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/reset-config';
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  </script>
+</body>
+</html>

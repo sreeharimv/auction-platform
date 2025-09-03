@@ -1,0 +1,449 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Palace Premier League Auction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+    <div class="header">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
+      <h1>Palace Premier League</h1>
+    </div>
+    <nav style="margin-top: 20px;">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('players') }}">Players</a>
+      <a href="{{ url_for('teams') }}">Teams</a>
+      <a href="{{ url_for('results') }}">Live Results</a>
+      {% if is_admin %}
+        <a href="{{ url_for('player_management') }}">Manage Players</a>
+        <a href="{{ url_for('tournament_settings') }}">Tournament Settings</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+        <form method="post" action="{{ url_for('reset_auction') }}" style="display: inline; margin-left: 12px;" onsubmit="return confirm('Reset entire auction? This will mark all players as unsold!')">
+          <button type="submit" class="btn secondary" style="background: #dc2626;">Reset Auction</button>
+        </form>
+        <form method="post" action="{{ url_for('reset_captains') }}" style="display: inline; margin-left: 8px;" onsubmit="return confirm('Reset all captains? They will become available for auction!')">
+          <button type="submit" class="btn secondary" style="background: #f59e0b;">Reset Captains</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('admin') }}">Admin</a>
+      {% endif %}
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid" style="margin-bottom: 20px;">
+      {% for team, budget in team_budgets.items() %}
+      <div class="card">
+        <div class="label">{{ team }}</div>
+        <div class="metric" style="font-size: 18px;">₹{{ format_currency(budget.remaining) }}</div>
+        <div style="font-size: 12px; color: #94a3b8;">{{ budget.players }}/{{ budget.min_players }} players</div>
+        <div style="font-size: 11px; color: #64748b;">Budget: ₹{{ format_currency(total_budget) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2>Unsold Players</h2>
+      {% if is_admin %}
+      <button onclick="showOrderSelection()" class="btn" style="background: #10b981;">Start Auction</button>
+      {% endif %}
+    </div>
+    {% if is_admin %}
+    <div style="margin-bottom: 16px; font-size: 14px; color: #94a3b8;">
+      <strong>Increment Slabs:</strong> ₹50L-1Cr: 10L | ₹1-2Cr: 25L | ₹2Cr+: 50L
+    </div>
+    {% endif %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Base Price</th>
+            <th>Team</th>
+            <th>Sold Price</th>
+            {% if is_admin %}<th>Action</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in players_unsold %}
+          <tr data-category="{{ p.role or '' }}">
+              <td>{{ loop.index }}</td>
+              <td>{{ p.name|dash_if_empty }}</td>
+              <td><span class="category-badge {{ (p.role or '').lower() }}">{{ p.role|dash_if_empty }}</span></td>
+              <td>₹{{ format_currency(p.base_price) if p.base_price not in ('', None) else '-' }}</td>
+              {% if is_admin %}
+              <td>
+                <form method="post" style="display: inline;">
+                  <input type="hidden" name="player_id" value="{{ p.player_id }}">
+                  <select id="team_{{ p.player_id }}" name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 160px;">
+                    <option value="">Select Team</option>
+                    <option value="Palace Tuskers">Palace Tuskers</option>
+                    <option value="Palace Titans">Palace Titans</option>
+                    <option value="Palace Warriors">Palace Warriors</option>
+                  </select>
+                </form>
+              </td>
+              <td>
+                <form method="post" style="display: inline;">
+                  <input type="hidden" name="player_id" value="{{ p.player_id }}">
+                  <select id="price_{{ p.player_id }}" name="sold_price" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 160px;" onchange="updatePriceOptions({{ p.player_id }})">
+                    <option value="">Select Price</option>
+                    {% for price in get_auction_price_options(p.base_price) %}
+                    <option value="{{ price }}">₹{{ format_currency(price) }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </td>
+              <td>
+                <button class="btn" onclick="sellPlayer({{ p.player_id }})">Mark Sold</button>
+                <br>
+                <form method="post" action="{{ url_for('set_captain') }}" style="display: inline; margin-top: 8px;">
+                  <input type="hidden" name="player_id" value="{{ p.player_id }}">
+                  <select name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 4px; border-radius: 4px; font-size: 12px;">
+                    <option value="">Set as Captain</option>
+                    <option value="Palace Tuskers">Tuskers Captain</option>
+                    <option value="Palace Titans">Titans Captain</option>
+                    <option value="Palace Warriors">Warriors Captain</option>
+                  </select>
+                  <button type="submit" class="btn" style="background: #f59e0b; font-size: 12px; padding: 4px 8px; margin-left: 4px;">Set</button>
+                </form>
+              </td>
+              {% else %}
+              <td colspan="3" style="text-align: center; color: #94a3b8;">Available for auction</td>
+              {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Sold Players</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Team</th>
+            <th>Sold Price</th>
+            <th>Sold At</th>
+            {% if is_admin %}<th>Action</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in players_sold %}
+          <tr class="sold">
+            <td>{{ p.player_id }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.team }}</td>
+            <td>₹{{ format_currency(p.sold_price) if p.sold_price not in ('', None) else '-' }}</td>
+            <td>{{ p.sold_at }}</td>
+            {% if is_admin %}
+            <td>
+              <form method="post" style="display:inline;">
+                <input type="hidden" name="player_id" value="{{ p.player_id }}">
+                <button class="btn secondary" name="action" value="revert">Revert</button>
+              </form>
+              <form method="post" action="{{ url_for('reset_player', player_id=p.player_id) }}" style="display:inline; margin-left: 4px;">
+                <button type="submit" class="btn" style="background: #dc2626; font-size: 12px; padding: 4px 8px;">Reset</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    // Team budget data from backend
+    const teamBudgets = {{ team_budgets|tojson }};
+    const totalBudget = {{ total_budget }};
+    
+    function updatePriceOptions(playerId) {
+      const teamSelect = document.getElementById('team_' + playerId);
+      const priceSelect = document.getElementById('price_' + playerId);
+      const selectedTeam = teamSelect.value;
+      
+      if (!selectedTeam) return;
+      
+      const teamData = teamBudgets[selectedTeam];
+      const maxAffordable = teamData.remaining - ((teamData.min_players - teamData.players - 1) * {{ base_price }});
+      
+      // Filter price options based on team's available budget
+      Array.from(priceSelect.options).forEach(option => {
+        if (option.value === '') return; // Keep "Select Price" option
+        
+        const price = parseInt(option.value);
+        if (price > maxAffordable) {
+          option.style.display = 'none';
+          option.disabled = true;
+        } else {
+          option.style.display = 'block';
+          option.disabled = false;
+        }
+      });
+      
+      // Reset price selection if current selection is now invalid
+      if (priceSelect.value && parseInt(priceSelect.value) > maxAffordable) {
+        priceSelect.value = '';
+      }
+    }
+    
+    // Add event listeners to team dropdowns
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('select[id^="team_"]').forEach(select => {
+        select.addEventListener('change', function() {
+          const playerId = this.id.split('_')[1];
+          updatePriceOptions(playerId);
+        });
+      });
+    });
+    
+    function sellPlayer(playerId) {
+      const team = document.getElementById('team_' + playerId).value;
+      const price = document.getElementById('price_' + playerId).value;
+      
+      if (!team || !price) {
+        alert('Please select both team and price');
+        return;
+      }
+      
+      // Validate team can afford the price
+      const teamData = teamBudgets[team];
+      const maxAffordable = teamData.remaining - ((teamData.min_players - teamData.players - 1) * {{ base_price }});
+      
+      if (parseInt(price) > maxAffordable) {
+        alert(`${team} cannot afford ₹${parseInt(price).toLocaleString()}. Maximum affordable: ₹${maxAffordable.toLocaleString()}`);
+        return;
+      }
+      
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.innerHTML = `
+        <input type="hidden" name="player_id" value="${playerId}">
+        <input type="hidden" name="team" value="${team}">
+        <input type="hidden" name="sold_price" value="${price}">
+        <input type="hidden" name="action" value="sell">
+      `;
+      document.body.appendChild(form);
+      form.submit();
+    }
+    
+    function showOrderSelection() {
+      const modal = document.getElementById('orderModal');
+      const playerOrder = document.getElementById('playerOrder');
+      
+      // Get unsold players
+      const players = [];
+      document.querySelectorAll('tbody tr[data-category]').forEach((row, index) => {
+        const name = row.cells[1].textContent;
+        const category = row.cells[2].textContent;
+        const basePrice = row.cells[3].textContent;
+        players.push({ name, category, basePrice });
+      });
+      
+      // Populate draggable list
+      playerOrder.innerHTML = players.map((player, index) => `
+        <div class="player-item" draggable="true" style="
+          background: #1e293b; border: 1px solid #475569; border-radius: 6px; padding: 12px; margin: 8px 0; cursor: move;
+          display: flex; justify-content: space-between; align-items: center;
+        ">
+          <div>
+            <span style="font-weight: bold;">${index + 1}. ${player.name}</span>
+            <span style="color: #94a3b8; margin-left: 12px;">${player.category}</span>
+          </div>
+          <span style="color: #94a3b8;">${player.basePrice}</span>
+        </div>
+      `).join('');
+      
+      addDragAndDrop();
+      modal.style.display = 'block';
+    }
+    
+    function addDragAndDrop() {
+      const items = document.querySelectorAll('.player-item');
+      items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragend', handleDragEnd);
+      });
+    }
+    
+    let draggedItem = null;
+    
+    function handleDragStart(e) {
+      draggedItem = this;
+      this.style.opacity = '0.5';
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      if (this !== draggedItem) {
+        const container = document.getElementById('playerOrder');
+        const allItems = [...container.children];
+        const draggedIndex = allItems.indexOf(draggedItem);
+        const targetIndex = allItems.indexOf(this);
+        
+        if (draggedIndex < targetIndex) {
+          container.insertBefore(draggedItem, this.nextSibling);
+        } else {
+          container.insertBefore(draggedItem, this);
+        }
+        updateOrderNumbers();
+      }
+    }
+    
+    function handleDragEnd(e) {
+      this.style.opacity = '1';
+      draggedItem = null;
+    }
+    
+    function updateOrderNumbers() {
+      const items = document.querySelectorAll('.player-item');
+      items.forEach((item, index) => {
+        const nameSpan = item.querySelector('span');
+        const name = nameSpan.textContent.split('. ')[1];
+        nameSpan.textContent = `${index + 1}. ${name}`;
+      });
+    }
+    
+    function sortByCategory() {
+      const items = [...document.querySelectorAll('.player-item')];
+      items.sort((a, b) => {
+        const catA = a.querySelector('span:nth-child(2)').textContent;
+        const catB = b.querySelector('span:nth-child(2)').textContent;
+        const order = {'Batsman': 1, 'All-Rounder': 2, 'Bowler': 3};
+        return (order[catA] || 4) - (order[catB] || 4);
+      });
+      const container = document.getElementById('playerOrder');
+      container.innerHTML = '';
+      items.forEach(item => container.appendChild(item));
+      updateOrderNumbers();
+      addDragAndDrop();
+    }
+    
+    function sortByPrice() {
+      const items = [...document.querySelectorAll('.player-item')];
+      items.sort((a, b) => {
+        const priceA = a.querySelector('span:last-child').textContent;
+        const priceB = b.querySelector('span:last-child').textContent;
+        return priceB.localeCompare(priceA, undefined, {numeric: true});
+      });
+      const container = document.getElementById('playerOrder');
+      container.innerHTML = '';
+      items.forEach(item => container.appendChild(item));
+      updateOrderNumbers();
+      addDragAndDrop();
+    }
+    
+    function sortCategoryPrice() {
+      const items = [...document.querySelectorAll('.player-item')];
+      items.sort((a, b) => {
+        const catA = a.querySelector('span:nth-child(2)').textContent;
+        const catB = b.querySelector('span:nth-child(2)').textContent;
+        const priceA = a.querySelector('span:last-child').textContent;
+        const priceB = b.querySelector('span:last-child').textContent;
+        
+        const order = {'Batsman': 1, 'All-Rounder': 2, 'Bowler': 3};
+        const catDiff = (order[catA] || 4) - (order[catB] || 4);
+        
+        if (catDiff !== 0) return catDiff;
+        return priceB.localeCompare(priceA, undefined, {numeric: true});
+      });
+      const container = document.getElementById('playerOrder');
+      container.innerHTML = '';
+      items.forEach(item => container.appendChild(item));
+      updateOrderNumbers();
+      addDragAndDrop();
+    }
+    
+    function shuffleOrder() {
+      const items = [...document.querySelectorAll('.player-item')];
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      const container = document.getElementById('playerOrder');
+      container.innerHTML = '';
+      items.forEach(item => container.appendChild(item));
+      updateOrderNumbers();
+      addDragAndDrop();
+    }
+    
+    function closeOrderModal() {
+      document.getElementById('orderModal').style.display = 'none';
+    }
+    
+    function startWithCustomOrder() {
+      const playerNames = [];
+      document.querySelectorAll('.player-item').forEach(item => {
+        const name = item.querySelector('span').textContent.split('. ')[1];
+        playerNames.push(name);
+      });
+      
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/start-sequential';
+      
+      const orderInput = document.createElement('input');
+      orderInput.type = 'hidden';
+      orderInput.name = 'custom_order';
+      orderInput.value = JSON.stringify(playerNames);
+      form.appendChild(orderInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+  </script>
+  <!-- Custom Order Selection Modal -->
+  <div id="orderModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+    <div style="background: #111827; margin: 50px auto; padding: 20px; border-radius: 12px; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+      <h2>Set Auction Order</h2>
+      <p style="color: #94a3b8;">Drag and drop players to set the auction sequence:</p>
+      
+      <div style="margin-bottom: 20px;">
+        <label>Quick Sort Options: </label>
+        <button onclick="sortByCategory()" class="btn secondary" style="margin-right: 8px;">By Category</button>
+        <button onclick="sortByPrice()" class="btn secondary" style="margin-right: 8px;">By Price (High→Low)</button>
+        <button onclick="sortCategoryPrice()" class="btn secondary" style="margin-right: 8px;">Category + Price</button>
+        <button onclick="shuffleOrder()" class="btn secondary" style="margin-right: 8px;">Random Shuffle</button>
+        <button onclick="closeOrderModal(); document.querySelector('form[action=\'/start-sequential\']').submit();" class="btn secondary">Use Default Order</button>
+      </div>
+      
+      <div id="playerOrder" style="background: #0f172a; border: 1px solid #374151; border-radius: 8px; padding: 16px; min-height: 300px;">
+        <!-- Players will be populated here -->
+      </div>
+      
+      <div style="margin-top: 20px; text-align: right;">
+        <button onclick="closeOrderModal()" class="btn secondary" style="margin-right: 12px;">Cancel</button>
+        <button onclick="startWithCustomOrder()" class="btn" style="background: #10b981;">Start Auction</button>
+      </div>
+    </div>
+  </div>
+
+  <form id="defaultSequentialForm" method="post" action="/start-sequential" style="display: none;"></form>
+
+</body>
+</html>

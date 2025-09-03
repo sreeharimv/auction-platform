@@ -1,0 +1,40 @@
+{
+  "tournament": {
+    "name": "Palace Premier League",
+    "logo": "logo.png"
+  },
+  "teams": {
+    "count": 3,
+    "names": [
+      "Palace Tuskers",
+      "Palace Titans",
+      "Palace Warriors"
+    ],
+    "budget": 250000000,
+    "min_players": 8,
+    "max_players": 9
+  },
+  "auction": {
+    "base_price": 5000000,
+    "currency": "\u20b9",
+    "increments": [
+      1000000,
+      2500000,
+      5000000
+    ]
+  },
+  "players": {
+    "import_method": "csv",
+    "csv_path": "players.csv",
+    "required_fields": [
+      "name",
+      "role",
+      "base_price"
+    ],
+    "optional_fields": [
+      "age",
+      "batting_style",
+      "bowling_style"
+    ]
+  }
+}

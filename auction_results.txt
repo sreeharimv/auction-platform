@@ -1,0 +1,78 @@
+PALACE PREMIER LEAGUE AUCTION RESULTS
+=====================================
+
+AUCTION SETTINGS:
+- Budget per team: ₹25 Crores
+- Base price: ₹50 Lakhs
+- Sequential auction format
+- Max bid formula: Remaining Budget - (Players Still Needed × Base Price)
+- Realistic team behavior: Teams avoid accumulating too many weak players
+
+CAPTAINS:
+- Palace Tuskers: Arjun (90 rating)
+- Palace Titans: Marsh (92 rating)  
+- Palace Warriors: Ram Manohar (90 rating)
+
+FINAL TEAM SQUADS:
+==================
+
+PALACE TUSKERS (9 players, ₹2.2Cr left):
+1. Arjun (Captain) - 90 rating
+2. Sreekanth - 92 rating - ₹6.2Cr
+3. Kannan - 50 rating - ₹0.5Cr
+4. Ashith - 65 rating - ₹1.3Cr
+5. Appu - 90 rating - ₹5.4Cr
+6. Raman Mpilly - 65 rating - ₹1.1Cr
+7. Arun Chandran - 65 rating - ₹0.5Cr (forced sale)
+8. Vysakh - 75 rating - ₹2.0Cr
+9. Kiran - 90 rating - ₹5.7Cr
+
+PALACE TITANS (9 players, ₹3.7Cr left):
+1. Marsh (Captain) - 92 rating
+2. Sidharth - 85 rating - ₹3.3Cr
+3. Sreehari - 93 rating - ₹6.9Cr
+4. Unnikrishnan - 60 rating - ₹0.5Cr
+5. Sabarish - 85 rating - ₹2.3Cr
+6. Raj Narayanan - 65 rating - ₹1.8Cr
+7. Ramkumar - 50 rating - ₹0.5Cr
+8. Arjun M - 75 rating - ₹1.1Cr
+9. Nandu - 90 rating - ₹4.9Cr
+
+PALACE WARRIORS (8 players, ₹3.1Cr left):
+1. Ram Manohar (Captain) - 90 rating
+2. Penakkan - 85 rating - ₹2.4Cr
+3. Renjith - 75 rating - ₹0.6Cr
+4. Hari - 91 rating - ₹6.3Cr
+5. Abhilash - 85 rating - ₹2.3Cr
+6. Govind M - 90 rating - ₹3.9Cr
+7. Arun Kasi - 90 rating - ₹5.1Cr
+8. Vedu - 75 rating - ₹1.3Cr
+
+AUCTION STATISTICS:
+===================
+- Total players: 26/26 (100% sold)
+- Total spent: ₹66.1Cr out of ₹75Cr available
+- Budget remaining: ₹8.9Cr across all teams
+- Average price per player: ₹2.54Cr
+- Highest sale: Sreehari (₹6.9Cr)
+- Base price sales: 3 players (Kannan, Unnikrishnan, Ramkumar)
+- Forced sale: 1 player (Arun Chandran)
+
+TEAM ANALYSIS:
+==============
+Palace Tuskers: Balanced squad with mix of premium and budget players
+Palace Titans: Strong batting lineup with Sreehari as marquee player
+Palace Warriors: Quality-focused approach, avoided weak players, smallest squad
+
+LOW-RATED PLAYER DISTRIBUTION:
+==============================
+- Palace Tuskers: 1 low player (Kannan-50)
+- Palace Titans: 2 low players (Unnikrishnan-60, Ramkumar-50)
+- Palace Warriors: 0 low players (strategic avoidance)
+
+AUCTION SUCCESS:
+- Sequential format worked perfectly
+- Realistic team behavior prevented concentration of weak players
+- Max bid formula prevented overbidding
+- All players found teams
+- Strategic distribution across squads
