@@ -404,7 +404,29 @@ def live_bidding(player_id):
             current_auction["status"] = "waiting"
             
             flash(f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{format_indian_currency(df.at[idx, 'sold_price'])}", "success")
-            return redirect(url_for("auction"))
+            
+            # If in sequential auction, move to next player
+            if sequential_auction["active"]:
+                sequential_auction["current_index"] += 1
+                
+                if sequential_auction["current_index"] >= len(sequential_auction["player_sequence"]):
+                    # Auction complete
+                    sequential_auction["active"] = False
+                    current_auction["player_id"] = None
+                    current_auction["status"] = "waiting"
+                    flash("Sequential auction completed! All players processed.", "success")
+                    return redirect(url_for("auction"))
+                
+                # Set next player
+                next_player_id = sequential_auction["player_sequence"][sequential_auction["current_index"]]
+                current_auction["player_id"] = next_player_id
+                current_auction["current_bid"] = BASE_PRICE
+                current_auction["current_team"] = ""
+                current_auction["status"] = "bidding"
+                
+                return redirect(url_for("sequential_auction_page"))
+            else:
+                return redirect(url_for("auction"))
     
     return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS)
 
