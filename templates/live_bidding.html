@@ -33,7 +33,7 @@
       <div class="card">
         <div class="label">Player</div>
         <div class="metric" style="font-size: 24px;">{{ player.name }}</div>
-        <div style="color: #94a3b8;">{{ player.role }} | {{ player.category }}</div>
+        <div style="color: #94a3b8;">{{ player.role }}</div>
       </div>
       <div class="card">
         <div class="label">Base Price</div>
@@ -73,9 +73,11 @@
             {% endfor %}
           </select>
           <select name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
-            <option value="">Select Bid</option>
+            <option value="">Select Higher Bid</option>
             {% for price in get_bid_increments(auction_state.current_bid) %}
+            {% if price > auction_state.current_bid %}
             <option value="{{ price }}">₹{{ format_currency(price) }}</option>
+            {% endif %}
             {% endfor %}
           </select>
           <button class="btn" name="action" value="update_bid">Update Bid</button>
