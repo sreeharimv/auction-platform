@@ -428,7 +428,66 @@ def live_bidding(player_id):
             else:
                 return redirect(url_for("auction"))
     
-    return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS)
+    # Compute per-team max bid capacity for this player
+    team_limits = {}
+    # Load latest config in case settings changed
+    config = load_config()
+    team_budget = config["teams"]["budget"]
+    base_price_rule = config["auction"]["base_price"]
+
+    # Determine next required bids relative to current auction state
+    effective_current = current_auction.get("current_bid", 0)
+    # If current is below player's base, treat base as the first required bid
+    if effective_current < player["base_price"]:
+        min_next_bid = player["base_price"]
+        # Second next after base price using increments
+        incs_after_base = [p for p in get_bid_increments(player["base_price"]) if p > player["base_price"]]
+        second_next_bid = incs_after_base[0] if incs_after_base else None
+    else:
+        next_prices = [p for p in get_bid_increments(effective_current) if p > effective_current]
+        min_next_bid = next_prices[0] if next_prices else None
+        second_next_bid = next_prices[1] if len(next_prices) > 1 else None
+
+    for team in TEAMS:
+        spent = pd.to_numeric(df[df["team"] == team]["sold_price"], errors="coerce").fillna(0).sum()
+        players_count = len(df[(df["team"] == team) & (df["status"].str.lower().isin(["sold", "captain"]))])
+
+        remaining = int(team_budget - int(spent))
+
+        # If already at max players, cannot bid
+        if players_count >= 9:
+            max_bid = 0
+        else:
+            # Reserve budget to still reach minimum 8 players after this purchase
+            min_needed_after_this = max(0, 8 - (players_count + 1))
+            max_bid = remaining - (min_needed_after_this * base_price_rule)
+            max_bid = int(max(0, max_bid))
+
+        # Determine if team can place at least the next valid bid now
+        if min_next_bid is None:
+            can_bid_now = False
+        else:
+            can_bid_now = max_bid >= min_next_bid
+
+        # Flag if they are near limit (can only do one increment)
+        near_limit = can_bid_now and (second_next_bid is not None) and (max_bid < second_next_bid)
+
+        team_limits[team] = {
+            "remaining": remaining,
+            "players": players_count,
+            "max_bid": max_bid,
+            "can_bid": max_bid >= player["base_price"],
+            "can_bid_now": can_bid_now,
+            "near_limit": near_limit,
+        }
+
+    return render_template(
+        "live_bidding.html",
+        player=player,
+        auction_state=current_auction,
+        teams=TEAMS,
+        team_limits=team_limits,
+    )
 
 @app.route("/live-view")
 def live_view():

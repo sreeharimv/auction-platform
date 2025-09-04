@@ -52,6 +52,30 @@
       </div>
     </div>
 
+    <!-- Team Max Bid Capacity -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Max Bid Each Team Can Make</h3>
+      <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">Only showing teams that can outbid current price.</div>
+      <div class="grid" style="margin-top: 12px;">
+        {% for team, info in team_limits.items() %}
+          {% if info.can_bid_now %}
+          <div class="card" style="padding: 16px;">
+            <div class="label">{{ team }}</div>
+            <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
+              ₹{{ format_currency(info.max_bid) }}
+            </div>
+            <div style="color: #94a3b8; font-size: 12px;">
+              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players }}/9
+            </div>
+            {% if info.near_limit %}
+              <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
     {% if auction_state.status == "waiting" %}
     <div class="card">
       <h3>Start Bidding</h3>
