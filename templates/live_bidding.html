@@ -224,10 +224,21 @@
             btn.disabled = true; setTimeout(()=>{btn.disabled=false;}, 600);
             const team = btn.getAttribute('data-team');
             try{
-              await fetch('{{ url_for('api_bid') }}', {
+              const resp = await fetch('{{ url_for('api_bid') }}', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ player_id: {{ player.player_id }}, team })
               });
+              const data = await resp.json().catch(()=>({}));
+              // Optimistic UI update for snappy feel
+              const bidEl = document.getElementById('lb-bid');
+              const leaderEl = document.getElementById('lb-leader');
+              const statusEl = document.getElementById('lb-status');
+              const applied = (data && (data.applied_bid || data.next_bid)) || 0;
+              if (bidEl && applied) bidEl.textContent = '₹' + formatCurrencyShort(applied);
+              if (leaderEl) leaderEl.textContent = team;
+              if (statusEl) statusEl.textContent = 'BIDDING';
+              const nr = (data && data.next_required) || nextRequiredBid(applied, BASE_PRICE, true);
+              updateButtons(nr, []);
             }catch(e){}
           });
         });
@@ -236,7 +247,13 @@
           soldBtn.addEventListener('click', async (e)=>{
             e.preventDefault();
             soldBtn.disabled = true; setTimeout(()=>{soldBtn.disabled=false;}, 800);
-            try{ await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ player.player_id }} }) }); }catch(e){}
+            try{ 
+              const resp = await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ player.player_id }} }) });
+              // Optimistic: reflect SOLD state immediately
+              const statusEl = document.getElementById('lb-status');
+              if (statusEl) statusEl.textContent = 'SOLD';
+              updateButtons(0, []);
+            }catch(e){}
           });
         }
       }

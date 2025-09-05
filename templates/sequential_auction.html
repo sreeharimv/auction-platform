@@ -195,7 +195,17 @@
             btn.disabled = true; setTimeout(()=>{btn.disabled=false;}, 600);
             const team = btn.getAttribute('data-team');
             try{
-              await fetch('{{ url_for('api_bid') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ current_player.player_id if current_player else 0 }}, team }) });
+              const resp = await fetch('{{ url_for('api_bid') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ current_player.player_id if current_player else 0 }}, team }) });
+              const data = await resp.json().catch(()=>({}));
+              const applied = (data && (data.applied_bid || data.next_bid)) || 0;
+              const bidEl = document.getElementById('sa-bid');
+              const leaderEl = document.getElementById('sa-leader');
+              const statusEl = document.getElementById('sa-status');
+              if (bidEl && applied) bidEl.textContent = '₹' + formatCurrencyShort(applied);
+              if (leaderEl) leaderEl.textContent = team;
+              if (statusEl) statusEl.textContent = 'BIDDING';
+              const nr = (data && data.next_required) || nextRequiredBid(applied, ({{ current_player.base_price if current_player else 0 }}), true);
+              updateButtons(nr, []);
             }catch(e){}
           });
         });
@@ -204,7 +214,12 @@
           soldBtn.addEventListener('click', async (e)=>{
             e.preventDefault();
             soldBtn.disabled = true; setTimeout(()=>{soldBtn.disabled=false;}, 800);
-            try{ await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ current_player.player_id if current_player else 0 }} }) }); }catch(e){}
+            try{ 
+              await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ current_player.player_id if current_player else 0 }} }) });
+              const statusEl = document.getElementById('sa-status');
+              if (statusEl) statusEl.textContent = 'SOLD';
+              updateButtons(0, []);
+            }catch(e){}
           });
         }
       }

@@ -1563,8 +1563,10 @@ def api_bid():
         current_auction['current_bid'] = next_bid
         current_auction['current_team'] = team
         current_auction['status'] = 'bidding'
+        # Compute next required after applying this bid
+        next_required = get_next_required_bid(next_bid, player.get('base_price', 0), True)
         broadcast_state()
-        return jsonify({"ok": True, "next_bid": next_bid})
+        return jsonify({"ok": True, "applied_bid": next_bid, "next_required": next_required, "leader": team, "status": "bidding"})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
