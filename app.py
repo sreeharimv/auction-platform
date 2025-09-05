@@ -542,7 +542,42 @@ def auction():
     
     players_unsold = df[(df["status"].astype(str).str.lower() != "sold") & (df["status"].astype(str).str.lower() != "captain")].to_dict(orient="records")
     players_sold = df[df["status"].astype(str).str.lower() == "sold"].to_dict(orient="records")
-    return render_template("auction.html", players_unsold=players_unsold, players_sold=players_sold, team_budgets=team_spending, total_budget=TEAM_BUDGET, base_price=BASE_PRICE, is_admin=True)
+
+    # Optional: current live bidding context for quick-bid controls on admin page
+    current_player = None
+    team_limits = None
+    next_bid = None
+    if current_auction.get("player_id"):
+        row = df[df["player_id"] == current_auction["player_id"]]
+        if not row.empty:
+            current_player = row.iloc[0].to_dict()
+            if (current_auction.get("status") or "").lower() in ("bidding", "going"):
+                team_limits = compute_team_limits(
+                    df,
+                    current_player,
+                    current_auction.get("current_bid", 0),
+                    current_team=current_auction.get("current_team", ""),
+                )
+                next_bid = get_next_required_bid(
+                    current_auction.get("current_bid", 0),
+                    current_player.get("base_price", 0),
+                    bool(current_auction.get("current_team")),
+                )
+
+    return render_template(
+        "auction.html",
+        players_unsold=players_unsold,
+        players_sold=players_sold,
+        team_budgets=team_spending,
+        total_budget=TEAM_BUDGET,
+        base_price=BASE_PRICE,
+        is_admin=True,
+        current_player=current_player,
+        auction_state=current_auction,
+        team_limits=team_limits,
+        next_bid=next_bid,
+        teams=TEAMS,
+    )
 
 @app.route("/results")
 def results():

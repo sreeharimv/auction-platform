@@ -42,7 +42,45 @@
         {% endfor %}
         </div>
       {% endif %}
-    {% endwith %}
+  {% endwith %}
+
+  {% if is_admin and current_player %}
+  <div class="card" style="margin: 16px 0;">
+    <div style="display:flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <div class="label">Live Bidding</div>
+        <div style="font-size:18px; font-weight:600;">{{ current_player.name }} (₹{{ format_currency(auction_state.current_bid) }})</div>
+        <div style="color:#94a3b8;">Leader: {{ auction_state.current_team or '—' }} • Status: {{ auction_state.status|upper }}</div>
+      </div>
+      <div>
+        <a class="btn secondary" href="{{ url_for('live_bidding', player_id=current_player.player_id) }}">Open Live Bidding</a>
+      </div>
+    </div>
+    {% if team_limits and next_bid %}
+    <div style="margin-top:12px;">
+      <div class="label" style="margin-bottom: 6px;">Quick Bid (Next: ₹{{ format_currency(next_bid) }})</div>
+      <div style="display:flex; gap:8px; flex-wrap: wrap;">
+        {% for team in teams %}
+          {% set tl = team_limits.get(team) %}
+          <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display:inline;">
+            <input type="hidden" name="team" value="{{ team }}">
+            <input type="hidden" name="bid_amount" value="{{ next_bid }}">
+            <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
+          </form>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <div style="display:flex; gap:12px; margin-top:12px;">
+      <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display:inline;">
+        <button class="btn" name="action" value="sold" style="background:#10b981;">SOLD!</button>
+      </form>
+      <form method="post" action="{{ url_for('next_player') }}" style="display:inline;">
+        <button class="btn" name="action" value="next" style="background:#334155;">Next Player</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
     <div class="grid" style="margin-bottom: 20px;">
       {% for team, budget in team_budgets.items() %}
