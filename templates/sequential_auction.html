@@ -104,6 +104,21 @@
           <button class="btn" name="action" value="update_bid">Update Bid</button>
         </div>
       </form>
+      {% if next_bid %}
+      <div style="margin-top: 12px;">
+        <div class="label" style="margin-bottom: 6px;">Quick Bid (Next: ₹{{ format_currency(next_bid) }})</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          {% for team in teams %}
+            {% set tl = team_limits.get(team) if team_limits else None %}
+            <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
+              <input type="hidden" name="team" value="{{ team }}">
+              <input type="hidden" name="bid_amount" value="{{ next_bid }}">
+              <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
+            </form>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       
       <div style="display: flex; gap: 12px; margin-top: 16px;">
         <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">

@@ -1,12 +1,14 @@
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify, Response, stream_with_context
 import pandas as pd
 from datetime import datetime
 import os
 import json
 from werkzeug.utils import secure_filename
 import io
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+import threading
+import queue
 
 app = Flask(__name__)
 app.secret_key = "change-me"
@@ -64,6 +66,81 @@ current_auction = {
     "current_team": "",
     "status": "waiting"  # waiting, bidding, going, sold
 }
+
+# Version counter for public live view; increments on state changes
+auction_version = 0
+
+def build_live_payload():
+    """Build a minimal JSON-serializable payload representing live state."""
+    df = load_players()
+    payload = {
+        "ts": datetime.now().isoformat(),
+        "auction": {
+            "status": current_auction.get("status"),
+            "current_bid": current_auction.get("current_bid", 0),
+            "current_team": current_auction.get("current_team") or "",
+        },
+        "starting_team": compute_starting_team(),
+        "player": None,
+        "eligible": [],
+    }
+    if current_auction.get("player_id"):
+        row = df[df["player_id"] == current_auction["player_id"]]
+        if not row.empty:
+            p = row.iloc[0].to_dict()
+            payload["player"] = {
+                "id": int(p.get("player_id")),
+                "name": p.get("name") or "",
+                "role": p.get("role") or "",
+                "base_price": int(p.get("base_price") or 0),
+                "photo": p.get("photo") or "default.png",
+            }
+            limits = compute_team_limits(df, p, current_auction.get("current_bid", 0), current_team=current_auction.get("current_team", ""))
+            # Only eligible teams; convert to list of dicts
+            eligible = []
+            for team, info in limits.items():
+                if info.get("can_bid_now"):
+                    eligible.append({
+                        "team": team,
+                        "max_valid_bid": int(info.get("max_valid_bid") or 0),
+                        "remaining": int(info.get("remaining") or 0),
+                        "players_with_captain": int(info.get("players_with_captain") or 0),
+                        "near_limit": bool(info.get("near_limit")),
+                    })
+            # Sort eligible by highest max_valid_bid desc
+            eligible.sort(key=lambda x: x["max_valid_bid"], reverse=True)
+            payload["eligible"] = eligible
+    return payload
+
+def broadcast_state():
+    """Increment version and push a JSON state payload to SSE listeners."""
+    global auction_version
+    auction_version += 1
+    message = json.dumps({
+        "type": "state",
+        "version": auction_version,
+        "payload": build_live_payload(),
+    })
+    with _sse_lock:
+        for q in list(_sse_clients):
+            try:
+                q.put_nowait(message)
+            except Exception:
+                pass
+
+# SSE subscription state
+_sse_lock = threading.Lock()
+_sse_clients = set()
+
+def _subscribe_sse():
+    q = queue.Queue(maxsize=100)
+    with _sse_lock:
+        _sse_clients.add(q)
+    return q
+
+def _unsubscribe_sse(q):
+    with _sse_lock:
+        _sse_clients.discard(q)
 
 # Sequential auction state
 sequential_auction = {
@@ -231,6 +308,22 @@ def compute_team_limits(df, player, current_bid, current_team=""):
 
     return team_limits
 
+def get_next_required_bid(current_bid, base_price, has_leader):
+    """Compute the next required bid amount based on increments and current state.
+    If no leader, allow base/current shown as the first bid.
+    """
+    try:
+        current_bid = int(current_bid or 0)
+        base_price = int(base_price or 0)
+    except Exception:
+        return None
+    if not has_leader:
+        return current_bid if current_bid >= base_price else base_price
+    for p in get_bid_increments(current_bid):
+        if p > current_bid:
+            return p
+    return None
+
 # Helper: compute starting team for current player in sequential auction
 def compute_starting_team():
     try:
@@ -245,20 +338,23 @@ DATA_FILE = os.path.join(os.path.dirname(__file__), "players.csv")
 
 def load_players():
     df = pd.read_csv(DATA_FILE)
+    modified = False
     # Normalize expected columns / add if missing
     for col in ["team", "status", "sold_price", "sold_at", "photo"]:
         if col not in df.columns:
             df[col] = "" if col in ["team", "sold_at", "photo"] else 0 if col == "sold_price" else "unsold"
+            modified = True
     # Ensure player_id is int-like
     if "player_id" in df.columns:
         try:
             df["player_id"] = df["player_id"].astype(int)
-        except:
+        except Exception:
             pass
     # Replace NaN/None with empty string for display
     df = df.fillna('')
-    # Save updated CSV with photo column if it was missing
-    save_players(df)
+    # Only write back if we actually added missing columns
+    if modified:
+        save_players(df)
     return df
 
 def save_players(df):
@@ -399,6 +495,8 @@ def auction():
                     df.at[i, "sold_price"] = sold_price
                     df.at[i, "sold_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     save_players(df)
+                    # Broadcast update so viewers refresh teams/results
+                    broadcast_state()
                     flash(f"Sold player #{pid} to {team} for ₹{format_indian_currency(sold_price)}.", "success")
 
         elif action == "revert":
@@ -412,6 +510,7 @@ def auction():
             df.at[i, "sold_price"] = 0
             df.at[i, "sold_at"] = ""
             save_players(df)
+            broadcast_state()
             flash(f"Reverted sale for player #{pid}.", "info")
 
         return redirect(url_for("auction"))
@@ -473,6 +572,7 @@ def live_bidding(player_id):
             current_auction["current_bid"] = player["base_price"]
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
+            broadcast_state()
             flash(f"Started bidding for {player['name']} at base price ₹{format_indian_currency(player['base_price'])}", "info")
             
         elif action == "update_bid":
@@ -524,6 +624,7 @@ def live_bidding(player_id):
             current_auction["current_bid"] = new_bid
             current_auction["current_team"] = team
             current_auction["status"] = "bidding"
+            broadcast_state()
             
         elif action == "sold":
             # If no bid placed, sell at base price
@@ -555,28 +656,43 @@ def live_bidding(player_id):
             current_auction["current_bid"] = 0
             current_auction["current_team"] = ""
             current_auction["status"] = "waiting"
+            broadcast_state()
             
             flash(f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{format_indian_currency(df.at[idx, 'sold_price'])}", "success")
             
             # If in sequential auction, move to next player
             if sequential_auction["active"]:
                 sequential_auction["current_index"] += 1
-                
                 if sequential_auction["current_index"] >= len(sequential_auction["player_sequence"]):
-                    # Auction complete
-                    sequential_auction["active"] = False
-                    current_auction["player_id"] = None
-                    current_auction["status"] = "waiting"
-                    flash("Sequential auction completed! All players processed.", "success")
-                    return redirect(url_for("auction"))
-                
+                    # End of round - if unsold players remain, start another round
+                    df2 = load_players()
+                    unsold_players = df2[(df2["status"].astype(str).str.lower() == "unsold")]
+                    if len(unsold_players) > 0:
+                        sequential_auction["current_index"] = 0
+                        sequential_auction["player_sequence"] = unsold_players["player_id"].tolist()
+                        next_player_id = sequential_auction["player_sequence"][0]
+                        current_auction["player_id"] = next_player_id
+                        current_auction["current_bid"] = BASE_PRICE
+                        current_auction["current_team"] = ""
+                        current_auction["status"] = "bidding"
+                        broadcast_state()
+                        flash("New round started for remaining unsold players.", "info")
+                        return redirect(url_for("sequential_auction_page"))
+                    else:
+                        # Auction complete
+                        sequential_auction["active"] = False
+                        current_auction["player_id"] = None
+                        current_auction["status"] = "waiting"
+                        broadcast_state()
+                        flash("Sequential auction completed! All players processed.", "success")
+                        return redirect(url_for("auction"))
                 # Set next player
                 next_player_id = sequential_auction["player_sequence"][sequential_auction["current_index"]]
                 current_auction["player_id"] = next_player_id
                 current_auction["current_bid"] = BASE_PRICE
                 current_auction["current_team"] = ""
                 current_auction["status"] = "bidding"
-                
+                broadcast_state()
                 return redirect(url_for("sequential_auction_page"))
             else:
                 return redirect(url_for("auction"))
@@ -587,6 +703,11 @@ def live_bidding(player_id):
         current_auction.get("current_bid", 0),
         current_team=current_auction.get("current_team", ""),
     )
+    next_bid = get_next_required_bid(
+        current_auction.get("current_bid", 0),
+        player.get("base_price", 0),
+        bool(current_auction.get("current_team")),
+    )
     starting_team = compute_starting_team()
 
     return render_template(
@@ -595,6 +716,7 @@ def live_bidding(player_id):
         auction_state=current_auction,
         teams=TEAMS,
         team_limits=team_limits,
+        next_bid=next_bid,
         starting_team=starting_team,
     )
 
@@ -614,7 +736,7 @@ def live_view():
             current_team=current_auction.get("current_team", ""),
         )
     
-    return render_template("live_view.html", current_player=current_player, auction_state=current_auction, team_limits=team_limits, starting_team=starting_team)
+    return render_template("live_view.html", current_player=current_player, auction_state=current_auction, team_limits=team_limits, starting_team=starting_team, auction_version=auction_version)
 
 @app.route("/start-sequential", methods=["POST"])
 def start_sequential():
@@ -656,6 +778,8 @@ def start_sequential():
     current_auction["current_bid"] = BASE_PRICE
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
+    broadcast_state()
+    broadcast_state()
     
     flash(f"Sequential auction started! {len(sequential_auction['player_sequence'])} players in queue.", "success")
     return redirect(url_for("sequential_auction_page"))
@@ -691,6 +815,20 @@ def sequential_auction_page():
         "current": sequential_auction["current_index"] + 1,
         "total": len(sequential_auction["player_sequence"])
     }
+    team_limits = None
+    next_bid = None
+    if current_player:
+        team_limits = compute_team_limits(
+            df,
+            current_player,
+            current_auction.get("current_bid", 0),
+            current_team=current_auction.get("current_team", ""),
+        )
+        next_bid = get_next_required_bid(
+            current_auction.get("current_bid", 0),
+            current_player.get("base_price", 0),
+            bool(current_auction.get("current_team")),
+        )
     
     return render_template("sequential_auction.html", 
                          current_player=current_player, 
@@ -698,7 +836,9 @@ def sequential_auction_page():
                          team_budgets=team_spending,
                          teams=TEAMS,
                          progress=progress,
-                         starting_team=compute_starting_team())
+                         starting_team=compute_starting_team(),
+                         team_limits=team_limits,
+                         next_bid=next_bid)
 
 @app.route("/next-player", methods=["POST"])
 def next_player():
@@ -714,10 +854,25 @@ def next_player():
     sequential_auction["current_index"] += 1
     
     if sequential_auction["current_index"] >= len(sequential_auction["player_sequence"]):
+        # End of round - if unsold players remain, start another round
+        df = load_players()
+        unsold_players = df[(df["status"].astype(str).str.lower() == "unsold")]
+        if len(unsold_players) > 0:
+            sequential_auction["current_index"] = 0
+            sequential_auction["player_sequence"] = unsold_players["player_id"].tolist()
+            next_player_id = sequential_auction["player_sequence"][0]
+            current_auction["player_id"] = next_player_id
+            current_auction["current_bid"] = BASE_PRICE
+            current_auction["current_team"] = ""
+            current_auction["status"] = "bidding"
+            broadcast_state()
+            flash("New round started for remaining unsold players.", "info")
+            return redirect(url_for("sequential_auction_page"))
         # Auction complete
         sequential_auction["active"] = False
         current_auction["player_id"] = None
         current_auction["status"] = "waiting"
+        broadcast_state()
         flash("Sequential auction completed! All players processed.", "success")
         return redirect(url_for("auction"))
     
@@ -727,6 +882,7 @@ def next_player():
     current_auction["current_bid"] = BASE_PRICE
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
+    broadcast_state()
     
     flash("Next player loaded!", "info")
     return redirect(url_for("sequential_auction_page"))
@@ -745,6 +901,7 @@ def reset_captains():
     df.loc[captain_mask, "sold_price"] = 0
     df.loc[captain_mask, "sold_at"] = ""
     save_players(df)
+    broadcast_state()
     
     flash("All captains reset to unsold players.", "success")
     return redirect(url_for("auction"))
@@ -770,6 +927,9 @@ def reset_auction():
     current_auction["current_bid"] = 0
     current_auction["current_team"] = ""
     current_auction["status"] = "waiting"
+    broadcast_state()
+    broadcast_state()
+    bump_auction_version()
     
     flash("Auction reset successfully! All players marked as unsold.", "success")
     return redirect(url_for("auction"))
@@ -803,6 +963,7 @@ def set_captain():
         df.at[i, "sold_price"] = 0
         df.at[i, "sold_at"] = ""
         save_players(df)
+        broadcast_state()
         flash(f"Set {player_name} as captain of {team}", "success")
     
     return redirect(url_for("auction"))
@@ -832,6 +993,8 @@ def reset_player(player_id):
             current_auction["current_bid"] = 0
             current_auction["current_team"] = ""
             current_auction["status"] = "waiting"
+            broadcast_state()
+            bump_auction_version()
         
         flash(f"Reset {player_name} - marked as unsold.", "info")
     
@@ -1273,6 +1436,255 @@ def export_config():
     json_bytes.seek(0)
     
     return send_file(json_bytes, mimetype='application/json', as_attachment=True, download_name='tournament_config.json')
+
+@app.route('/player-card/<int:player_id>.png')
+def player_card(player_id):
+    df = load_players()
+    row = df[df['player_id'] == player_id]
+    if row.empty:
+        return jsonify({"error": "Player not found"}), 404
+    p = row.iloc[0].to_dict()
+
+    # Card dimensions
+    W, H = 1400, 720
+    bg_color = (17, 24, 39)      # #111827
+    panel_color = (2, 6, 23)     # darker
+    text_primary = (226, 232, 240)  # #e2e8f0
+    text_muted = (148, 163, 184)    # #94a3b8
+    accent_blue = (147, 197, 253)   # #93c5fd
+    green = (16, 185, 129)          # #10b981
+    orange = (245, 158, 11)         # #f59e0b
+
+    # Create image
+    img = Image.new('RGB', (W, H), bg_color)
+    draw = ImageDraw.Draw(img)
+
+    # Try fonts
+    def load_font(path, size):
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            return None
+    font_paths = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    ]
+    font_title = None
+    font_sub = None
+    for fp in font_paths:
+        if not font_title:
+            font_title = load_font(fp, 64)
+        if not font_sub:
+            font_sub = load_font(fp, 36)
+    if not font_title:
+        font_title = ImageFont.load_default()
+    if not font_sub:
+        font_sub = ImageFont.load_default()
+
+    # Header: tournament name and logo
+    tour_name = CONFIG.get('tournament', {}).get('name', 'Tournament')
+    draw.text((40, 30), tour_name, fill=text_muted, font=font_sub)
+    # Logo (optional, top-right)
+    try:
+        logo_path = os.path.join(app.static_folder, CONFIG.get('tournament', {}).get('logo', 'logo.png'))
+        logo = Image.open(logo_path).convert('RGBA')
+        # scale logo
+        max_side = 120
+        ratio = min(max_side / logo.width, max_side / logo.height)
+        logo = logo.resize((int(logo.width * ratio), int(logo.height * ratio)), Image.Resampling.LANCZOS)
+        img.paste(logo, (W - logo.width - 40, 20), logo)
+    except Exception:
+        pass
+
+    # Player photo
+    photo_name = p.get('photo') or 'default.png'
+    photo_path = os.path.join(app.static_folder, 'players', photo_name)
+    try:
+        ph = Image.open(photo_path).convert('RGB')
+    except Exception:
+        ph = Image.new('RGB', (480, 480), panel_color)
+    # Center-crop to square, then resize to 480x480
+    w, h = ph.size
+    side = min(w, h)
+    left = (w - side) // 2
+    top = (h - side) // 2
+    ph = ph.crop((left, top, left + side, top + side))
+    ph = ph.resize((480, 480), Image.Resampling.LANCZOS)
+    # Make perfect circular mask
+    mask = Image.new('L', (480, 480), 0)
+    mdraw = ImageDraw.Draw(mask)
+    mdraw.ellipse((0, 0, 480, 480), fill=255)
+    px, py = 60, 120
+    # Photo border circle
+    border = Image.new('RGB', (480 + 12, 480 + 12), accent_blue)
+    border_mask = Image.new('L', (480 + 12, 480 + 12), 0)
+    ImageDraw.Draw(border_mask).ellipse((0, 0, 480 + 12, 480 + 12), fill=255)
+    img.paste(border, (px - 6, py - 6), border_mask)
+    img.paste(ph, (px, py), mask)
+
+    # Right panel texts
+    name = str(p.get('name') or '')
+    role = str(p.get('role') or '-')
+    team = str(p.get('team') or '-')
+    status = str(p.get('status') or '').lower()
+    sold_price = int(p.get('sold_price') or 0)
+
+    # Name
+    name_x, name_y = 600, 150
+    draw.text((name_x, name_y), name, fill=text_primary, font=font_title)
+    # Role
+    draw.text((name_x, name_y + 80), role, fill=text_muted, font=font_sub)
+    # Team
+    draw.text((name_x, name_y + 140), f"Team: {team}", fill=text_primary, font=font_sub)
+
+    # Price / Captain label
+    if status == 'captain':
+        draw.text((name_x, name_y + 210), 'Captain', fill=orange, font=font_sub)
+    elif status == 'sold':
+        price_str = f"Sold for ₹{format_indian_currency(sold_price)}"
+        draw.text((name_x, name_y + 210), price_str, fill=green, font=font_sub)
+    else:
+        base_price = int(p.get('base_price') or 0)
+        price_str = f"Base: ₹{format_indian_currency(base_price)}"
+        draw.text((name_x, name_y + 210), price_str, fill=text_muted, font=font_sub)
+
+    # Footer bar
+    draw.rectangle([(0, H-60), (W, H)], fill=panel_color)
+    draw.text((40, H-50), f"Player ID: {p.get('player_id')}", fill=text_muted, font=font_sub)
+
+    # Return as download
+    bio = io.BytesIO()
+    img.save(bio, format='PNG')
+    bio.seek(0)
+    fname = f"player_{p.get('player_id')}_card.png"
+    return send_file(bio, mimetype='image/png', as_attachment=True, download_name=fname)
+
+@app.route('/team-card/<path:team_name>.png')
+def team_card(team_name):
+    df = load_players()
+    team_df = df[df['team'] == team_name]
+    if team_df.empty and team_name not in TEAMS:
+        return jsonify({"error": "Team not found"}), 404
+    # Sort captain first, then name
+    team_df = team_df.copy()
+    team_df['status'] = team_df['status'].astype(str)
+    team_df.sort_values(by=['status','name'], key=lambda s: s.map(lambda v: 0 if str(v).lower()== 'captain' else 1), inplace=True)
+
+    spent = pd.to_numeric(team_df['sold_price'], errors='coerce').fillna(0).sum()
+    count = len(team_df)
+    remaining = TEAM_BUDGET - int(spent)
+
+    # Layout sizing
+    W = 1400
+    header_h = 180
+    row_h = 60
+    rows = max(1, len(team_df))
+    H = header_h + rows*row_h + 80
+    bg = (17,24,39)
+    panel = (30,41,59)
+    text = (226,232,240)
+    muted = (148,163,184)
+    green = (16,185,129)
+    orange = (245,158,11)
+
+    img = Image.new('RGB', (W, H), bg)
+    draw = ImageDraw.Draw(img)
+
+    # Fonts
+    def load_font(path, size):
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            return None
+    font_paths = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    ]
+    f_title = None; f_sub = None
+    for fp in font_paths:
+        if not f_title:
+            f_title = load_font(fp, 54)
+        if not f_sub:
+            f_sub = load_font(fp, 30)
+    f_title = f_title or ImageFont.load_default()
+    f_sub = f_sub or ImageFont.load_default()
+
+    # Header
+    draw.text((40, 30), CONFIG.get('tournament',{}).get('name','Tournament'), fill=muted, font=f_sub)
+    # Team name and counts on right
+    draw.text((40, 90), team_name, fill=text, font=f_title)
+    stats = f"{count} players   |   Spent: ₹{format_indian_currency(int(spent))}   |   Remaining: ₹{format_indian_currency(int(remaining))}"
+    draw.text((40, 150), stats, fill=muted, font=f_sub)
+
+    # Table headers
+    y = header_h
+    x_name, x_role, x_price = 40, 620, 980
+    draw.text((x_name, y), 'Name', fill=muted, font=f_sub)
+    draw.text((x_role, y), 'Category', fill=muted, font=f_sub)
+    draw.text((x_price, y), 'Price', fill=muted, font=f_sub)
+    y += 20
+    draw.line([(40,y),(W-40,y)], fill=panel, width=2)
+    y += 20
+
+    # Rows
+    for _, r in team_df.iterrows():
+        name = str(r.get('name') or '-')
+        role = str(r.get('role') or '-')
+        status = str(r.get('status') or '').lower()
+        sold_price = int(r.get('sold_price') or 0)
+        draw.text((x_name, y), name, fill=text, font=f_sub)
+        draw.text((x_role, y), role, fill=muted, font=f_sub)
+        if status == 'captain':
+            draw.text((x_price, y), 'Captain', fill=orange, font=f_sub)
+        else:
+            pr = '-' if sold_price == 0 else f"₹{format_indian_currency(sold_price)}"
+            draw.text((x_price, y), pr, fill=green if sold_price else muted, font=f_sub)
+        y += row_h
+
+    bio = io.BytesIO()
+    img.save(bio, format='PNG')
+    bio.seek(0)
+    safe_team = team_name.lower().replace(' ','_')
+    return send_file(bio, mimetype='image/png', as_attachment=True, download_name=f"{safe_team}_card.png")
+
+@app.route("/live-version")
+def live_version():
+    # Lightweight endpoint to let public live view detect updates without full reload
+    from flask import make_response
+    resp = jsonify({"version": auction_version})
+    # Prevent caching
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return resp
+
+@app.route('/events')
+def events():
+    # Server-Sent Events stream for public viewers
+    q = _subscribe_sse()
+
+    @stream_with_context
+    def gen():
+        try:
+            # Send an initial state so clients can sync immediately
+            init_msg = json.dumps({"type": "state", "version": auction_version, "payload": build_live_payload()})
+            yield f"data: {init_msg}\n\n"
+            while True:
+                msg = q.get()  # blocks until broadcast
+                # msg may be a JSON string; if not, wrap it
+                if isinstance(msg, str):
+                    yield f"data: {msg}\n\n"
+                else:
+                    wrapped = json.dumps({"type": "state", "version": auction_version, "payload": build_live_payload()})
+                    yield f"data: {wrapped}\n\n"
+        finally:
+            _unsubscribe_sse(q)
+
+    headers = {
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream',
+        'X-Accel-Buffering': 'no',  # for nginx
+        'Connection': 'keep-alive',
+    }
+    return Response(gen(), headers=headers)
 
 @app.route("/import-config", methods=["POST"])
 def import_config():

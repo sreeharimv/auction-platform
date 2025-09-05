@@ -65,7 +65,7 @@
             <th>Name</th>
             <th>Team</th>
             <th>Sold Price</th>
-            <th>Sold At</th>
+            {% if is_admin %}<th>Sold At</th>{% endif %}
           </tr>
         </thead>
         <tbody>
@@ -75,7 +75,7 @@
             <td>{{ p.name }}</td>
             <td>{{ p.team }}</td>
             <td>₹{{ format_currency(p.sold_price) if p.sold_price not in ('', None) else '-' }}</td>
-            <td>{{ p.sold_at }}</td>
+            {% if is_admin %}<td>{{ p.sold_at }}</td>{% endif %}
           </tr>
         {% endfor %}
         </tbody>
@@ -172,7 +172,7 @@
             <th>Name</th>
             <th>Team</th>
             <th>Sold Price</th>
-            <th>Sold At</th>
+            {% if is_admin %}<th>Sold At</th>{% endif %}
             {% if is_admin %}<th>Action</th>{% endif %}
           </tr>
         </thead>
@@ -183,7 +183,7 @@
             <td>{{ p.name }}</td>
             <td>{{ p.team }}</td>
             <td>₹{{ format_currency(p.sold_price) if p.sold_price not in ('', None) else '-' }}</td>
-            <td>{{ p.sold_at }}</td>
+            {% if is_admin %}<td>{{ p.sold_at }}</td>{% endif %}
             {% if is_admin %}
             <td>
               <form method="post" style="display:inline;">
@@ -493,5 +493,16 @@
 
   <form id="defaultSequentialForm" method="post" action="/start-sequential" style="display: none;"></form>
 
+{% if not is_admin %}
+<script>
+  (function() {
+    try {
+      const es = new EventSource('{{ url_for('events') }}');
+      es.onmessage = function() { location.reload(); };
+      es.onerror = function() { try { es.close(); } catch(e){} setTimeout(()=>location.reload(), 2000); };
+    } catch (e) {}
+  })();
+</script>
+{% endif %}
 </body>
 </html>

@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Live Auction View</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <meta http-equiv="refresh" content="3">
+  <!-- Removed meta refresh; we poll a lightweight version endpoint instead. -->
 </head>
 <body>
-  <div class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;">
+  <div id="lv-root" class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;" data-player-id="{{ current_player.player_id if current_player else '' }}">
     <div class="header">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
       <h1>Palace Premier League</h1>
@@ -28,9 +28,9 @@
       <!-- Left column: Larger player photo -->
       <div class="card" style="text-align: center; padding: 30px;">
         <div class="label" style="margin-bottom: 20px;">Current Player</div>
-        <img src="{{ url_for('static', filename='players/' + (current_player.photo or 'default.png')) }}?t={{ timestamp() }}" alt="{{ current_player.name }}" style="width: 240px; height: 240px; border-radius: 50%; object-fit: cover; border: 4px solid #93c5fd; margin: 0 auto 20px; display: block; box-shadow: 0 8px 32px rgba(147, 197, 253, 0.3);" onerror="this.src='{{ url_for('static', filename='players/default.png') }}'">
-        <div class="metric" style="font-size: 32px;">{{ current_player.name }}</div>
-        <div style="color: #94a3b8; font-size: 16px;">{{ current_player.role }}</div>
+        <img id="lv-photo" src="{{ url_for('static', filename='players/' + (current_player.photo or 'default.png')) }}?t={{ timestamp() }}" alt="{{ current_player.name }}" style="width: 240px; height: 240px; border-radius: 50%; object-fit: cover; border: 4px solid #93c5fd; margin: 0 auto 20px; display: block; box-shadow: 0 8px 32px rgba(147, 197, 253, 0.3);" onerror="this.src='{{ url_for('static', filename='players/default.png') }}'">
+        <div id="lv-name" class="metric" style="font-size: 32px;">{{ current_player.name }}</div>
+        <div id="lv-role" style="color: #94a3b8; font-size: 16px;">{{ current_player.role }}</div>
       </div>
 
       <!-- Right column: Card with two rows + row 3 (eligible teams) -->
@@ -39,12 +39,12 @@
         <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="card">
             <div class="label">Current Bid</div>
-            <div class="metric" style="color: #10b981;">₹{{ format_currency(auction_state.current_bid) }}</div>
-            <div style="color: #94a3b8;">{{ auction_state.current_team or "No bids yet" }}</div>
+            <div id="lv-bid" class="metric" style="color: #10b981;">₹{{ format_currency(auction_state.current_bid) }}</div>
+            <div id="lv-leader" style="color: #94a3b8;">{{ auction_state.current_team or "No bids yet" }}</div>
           </div>
           <div class="card">
             <div class="label">Base Price</div>
-            <div class="metric">₹{{ format_currency(current_player.base_price) }}</div>
+            <div id="lv-base" class="metric">₹{{ format_currency(current_player.base_price) }}</div>
           </div>
         </div>
 
@@ -52,16 +52,14 @@
         <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="card">
             <div class="label">Status</div>
-            <div class="metric" style="font-size: 20px; text-transform: uppercase; 
-                 color: {% if auction_state.status == 'going' %}#f59e0b{% elif auction_state.status == 'bidding' %}#10b981{% else %}#94a3b8{% endif %};">
-              {{ auction_state.status }}
-              {% if auction_state.status == 'going' %}🔥{% elif auction_state.status == 'bidding' %}⚡{% endif %}
+            <div id="lv-status" class="metric" style="font-size: 20px; text-transform: uppercase; color: {% if auction_state.status == 'going' %}#f59e0b{% elif auction_state.status == 'bidding' %}#10b981{% else %}#94a3b8{% endif %};">
+              {{ auction_state.status }} <span id="lv-status-emoji">{% if auction_state.status == 'going' %}🔥{% elif auction_state.status == 'bidding' %}⚡{% endif %}</span>
             </div>
           </div>
           {% if starting_team %}
-          <div class="card">
+          <div id="lv-starting-wrap" class="card">
             <div class="label">Starting Team</div>
-            <div class="metric" style="font-size: 20px;">{{ starting_team }}</div>
+            <div id="lv-starting" class="metric" style="font-size: 20px;">{{ starting_team }}</div>
           </div>
           {% endif %}
         </div>
@@ -69,12 +67,12 @@
         <!-- Row 3: Teams who can bid now -->
         {% if team_limits %}
           {% set eligible = team_limits.values()|selectattr('can_bid_now')|list %}
-          <div class="card" style="padding: 12px;">
+          <div id="lv-eligible-container" class="card" style="padding: 12px;">
             <h3 style="margin: 0 0 8px;">Teams Who Can Bid Now</h3>
             {% if eligible|length == 0 %}
-              <div style="color: #94a3b8;">No teams can place the next bid.</div>
+              <div id="lv-eligible-empty" style="color: #94a3b8;">No teams can place the next bid.</div>
             {% else %}
-            <div class="grid" style="margin-top: 8px;">
+            <div id="lv-eligible-grid" class="grid" style="margin-top: 8px;">
               {% for team, info in team_limits.items() %}
                 {% if info.can_bid_now %}
                 <div class="card" style="padding: 12px;">
@@ -117,5 +115,98 @@
     {% endif %}
 
   </div>
+  <script>
+    (function() {
+      // Currency formatting mirroring backend
+      function formatCurrencyShort(amount) {
+        if (amount >= 10000000) {
+          const crores = amount / 10000000;
+          const s = (Math.round((crores + 1e-9) * 100) / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+          return `${s}Cr`;
+        } else if (amount >= 100000) {
+          const lakhs = amount / 100000;
+          if (Number.isInteger(lakhs)) return `${lakhs}L`;
+          return `${lakhs.toFixed(1).replace(/\.0$/, '')}L`;
+        }
+        return amount.toLocaleString('en-IN');
+      }
+
+      let es;
+      function connect() {
+        try {
+          es = new EventSource('{{ url_for('events') }}');
+          es.onmessage = function(evt) {
+            try {
+              const data = JSON.parse(evt.data);
+              if (!data || data.type !== 'state') { location.reload(); return; }
+              const s = data.payload || {};
+              const root = document.getElementById('lv-root');
+              const currentId = root ? root.getAttribute('data-player-id') : '';
+              const newId = s.player ? String(s.player.id) : '';
+              if (!currentId || !newId || currentId !== newId) { location.reload(); return; }
+              // Patch DOM
+              const bidEl = document.getElementById('lv-bid');
+              const leaderEl = document.getElementById('lv-leader');
+              const statusEl = document.getElementById('lv-status');
+              const emojiEl = document.getElementById('lv-status-emoji');
+              const startingWrap = document.getElementById('lv-starting-wrap');
+              const startingEl = document.getElementById('lv-starting');
+              const eligibleGrid = document.getElementById('lv-eligible-grid');
+              const eligibleEmpty = document.getElementById('lv-eligible-empty');
+
+              if (bidEl) bidEl.textContent = '₹' + formatCurrencyShort(s.auction.current_bid || 0);
+              if (leaderEl) leaderEl.textContent = s.auction.current_team || 'No bids yet';
+              if (statusEl) {
+                const st = (s.auction.status || '').toLowerCase();
+                statusEl.textContent = (s.auction.status || '').toUpperCase() + ' ';
+                if (emojiEl) statusEl.appendChild(emojiEl);
+                if (st === 'going') { statusEl.style.color = '#f59e0b'; if (emojiEl) emojiEl.textContent = '🔥'; }
+                else if (st === 'bidding') { statusEl.style.color = '#10b981'; if (emojiEl) emojiEl.textContent = '⚡'; }
+                else { statusEl.style.color = '#94a3b8'; if (emojiEl) emojiEl.textContent = ''; }
+              }
+              if (startingWrap) {
+                if (s.starting_team) { startingWrap.style.display = ''; if (startingEl) startingEl.textContent = s.starting_team; }
+                else { startingWrap.style.display = 'none'; }
+              }
+              // Rebuild eligible teams
+              if (eligibleGrid || eligibleEmpty) {
+                const elig = Array.isArray(s.eligible) ? s.eligible : [];
+                if (elig.length === 0) {
+                  if (eligibleGrid) eligibleGrid.innerHTML = '';
+                  if (eligibleEmpty) eligibleEmpty.style.display = '';
+                } else {
+                  if (eligibleEmpty) eligibleEmpty.style.display = 'none';
+                  if (eligibleGrid) {
+                    eligibleGrid.innerHTML = elig.map(item => `
+                      <div class="card" style="padding: 12px;">
+                        <div class="label">${item.team}</div>
+                        <div class="metric" style="color: ${item.near_limit ? '#f59e0b' : '#10b981'};">
+                          ₹${formatCurrencyShort(item.max_valid_bid || 0)}
+                        </div>
+                        <div style="color: #94a3b8; font-size: 12px;">
+                          Remaining: ₹${formatCurrencyShort(item.remaining || 0)} • Players: ${item.players_with_captain}/{{ CONFIG.teams.max_players }}
+                        </div>
+                        ${item.near_limit ? '<div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>' : ''}
+                      </div>
+                    `).join('');
+                  }
+                }
+              }
+            } catch (e) {
+              location.reload();
+            }
+          };
+          es.onerror = function() {
+            // Reconnect with backoff
+            es && es.close();
+            setTimeout(connect, 1000);
+          };
+        } catch (e) {
+          setTimeout(connect, 1500);
+        }
+      }
+      connect();
+    })();
+  </script>
 </body>
 </html>
