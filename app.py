@@ -910,8 +910,6 @@ def reset_auction():
     current_auction["current_team"] = ""
     current_auction["status"] = "waiting"
     broadcast_state()
-    broadcast_state()
-    bump_auction_version()
     
     flash("Auction reset successfully! All players marked as unsold.", "success")
     return redirect(url_for("auction"))
@@ -976,7 +974,6 @@ def reset_player(player_id):
             current_auction["current_team"] = ""
             current_auction["status"] = "waiting"
             broadcast_state()
-            bump_auction_version()
         
         flash(f"Reset {player_name} - marked as unsold.", "info")
     
