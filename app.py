@@ -432,8 +432,39 @@ def live_bidding(player_id):
             flash(f"Started bidding for {player['name']} at base price ₹{player['base_price']:,}", "info")
             
         elif action == "update_bid":
-            new_bid = int(request.form.get("bid_amount"))
-            team = request.form.get("team")
+            try:
+                new_bid = int(request.form.get("bid_amount"))
+            except (TypeError, ValueError):
+                flash("Select a valid bid amount.", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=compute_team_limits(df, player, current_auction.get("current_bid", 0)))
+
+            team = request.form.get("team") or ""
+            if not team:
+                flash("Select a team to place bid.", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=compute_team_limits(df, player, current_auction.get("current_bid", 0)))
+
+            # Validate against team limits and increments
+            limits = compute_team_limits(df, player, current_auction.get("current_bid", 0))
+            tl = limits.get(team)
+            if not tl:
+                flash("Invalid team selection.", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+
+            if new_bid <= current_auction.get("current_bid", 0):
+                flash("Bid must be higher than current bid.", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+
+            if new_bid > tl["max_bid"]:
+                flash(f"{team} cannot afford ₹{format_indian_currency(new_bid)}. Max allowed: ₹{format_indian_currency(tl['max_bid'])}", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+
+            # Server-side increment validation
+            valid_next = [p for p in get_bid_increments(current_auction.get("current_bid", 0)) if p > current_auction.get("current_bid", 0)]
+            if new_bid not in valid_next:
+                flash("Invalid increment selected.", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+
+            # All good – apply bid
             current_auction["current_bid"] = new_bid
             current_auction["current_team"] = team
             current_auction["status"] = "bidding"
@@ -443,6 +474,18 @@ def live_bidding(player_id):
             if current_auction["current_bid"] == 0:
                 current_auction["current_bid"] = player["base_price"]
                 current_auction["current_team"] = request.form.get("team", "")
+            # Validate sale against team limits
+            sale_team = current_auction.get("current_team") or ""
+            if not sale_team:
+                flash("Cannot mark as SOLD without a leading team.", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=compute_team_limits(df, player, current_auction.get("current_bid", 0)))
+
+            limits = compute_team_limits(df, player, current_auction.get("current_bid", 0))
+            tl = limits.get(sale_team)
+            if not tl or current_auction["current_bid"] > tl["max_bid"]:
+                flash(f"{sale_team} cannot complete purchase at ₹{format_indian_currency(current_auction['current_bid'])}. Max: ₹{format_indian_currency(tl['max_bid']) if tl else 0}", "error")
+                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+
             # Mark as sold in CSV
             idx = df.index[df["player_id"] == player_id][0]
             df.at[idx, "team"] = current_auction["current_team"]

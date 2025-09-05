@@ -93,13 +93,16 @@
       <h3>Place Bid</h3>
       <form method="post">
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <select name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
+          <select id="teamSelect" name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
             <option value="">Select Team</option>
             {% for team in teams %}
-            <option value="{{ team }}" {% if team == auction_state.current_team %}selected{% endif %}>{{ team }}</option>
+            {% set tl = team_limits.get(team) %}
+            <option value="{{ team }}" {% if team == auction_state.current_team %}selected{% endif %} data-eligible="{{ '1' if tl and tl.can_bid_now else '0' }}">
+              {{ team }}{% if tl and not tl.can_bid_now %} (blocked){% endif %}
+            </option>
             {% endfor %}
           </select>
-          <select name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
+          <select id="bidSelect" name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
             <option value="">Select Higher Bid</option>
             {% for price in get_bid_increments(auction_state.current_bid) %}
             {% if price > auction_state.current_bid %}
@@ -120,5 +123,48 @@
     {% endif %}
 
   </div>
+  <script>
+    const teamLimits = {{ team_limits|tojson }};
+    const currentBid = {{ auction_state.current_bid or 0 }};
+    const basePrice = {{ player.base_price }};
+
+    function filterTeams() {
+      const sel = document.getElementById('teamSelect');
+      if (!sel) return;
+      [...sel.options].forEach(opt => {
+        if (!opt.value) return;
+        const tl = teamLimits[opt.value];
+        const eligible = tl && tl.can_bid_now;
+        opt.disabled = !eligible;
+      });
+    }
+
+    function filterBids() {
+      const teamSel = document.getElementById('teamSelect');
+      const bidSel = document.getElementById('bidSelect');
+      const team = teamSel.value;
+      if (!team) return;
+      const tl = teamLimits[team];
+      if (!tl) return;
+      [...bidSel.options].forEach(opt => {
+        if (!opt.value) return;
+        const price = parseInt(opt.value);
+        // Hide bids above team's max
+        opt.disabled = price > tl.max_bid;
+        opt.style.display = price > tl.max_bid ? 'none' : 'block';
+      });
+      // If current selection invalid, reset
+      if (bidSel.value && parseInt(bidSel.value) > tl.max_bid) {
+        bidSel.value = '';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      filterTeams();
+      filterBids();
+      const teamSel = document.getElementById('teamSelect');
+      teamSel && teamSel.addEventListener('change', filterBids);
+    });
+  </script>
 </body>
 </html>
