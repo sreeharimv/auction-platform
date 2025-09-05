@@ -13,6 +13,12 @@ import queue
 app = Flask(__name__)
 app.secret_key = "change-me"
 
+# Pillow resampling compatibility (handles Pillow<9.1 without Image.Resampling)
+try:
+    RESAMPLE_LANCZOS = Image.Resampling.LANCZOS  # Pillow 9.1+
+except Exception:
+    RESAMPLE_LANCZOS = getattr(Image, "LANCZOS", getattr(Image, "ANTIALIAS", Image.BICUBIC))
+
 # Load configuration
 def load_config():
     config_path = os.path.join(os.path.dirname(__file__), "config.json")
@@ -1244,7 +1250,7 @@ def upload_player_photo():
             image = image.convert('RGB')
         
         # Resize to 200x200 maintaining aspect ratio
-        image.thumbnail((200, 200), Image.Resampling.LANCZOS)
+        image.thumbnail((200, 200), RESAMPLE_LANCZOS)
         
         # Create square image with padding if needed
         if image.size != (200, 200):
@@ -1491,7 +1497,7 @@ def player_card(player_id):
         # scale logo
         max_side = 120
         ratio = min(max_side / logo.width, max_side / logo.height)
-        logo = logo.resize((int(logo.width * ratio), int(logo.height * ratio)), Image.Resampling.LANCZOS)
+        logo = logo.resize((int(logo.width * ratio), int(logo.height * ratio)), RESAMPLE_LANCZOS)
         img.paste(logo, (W - logo.width - 40, 20), logo)
     except Exception:
         pass
@@ -1509,7 +1515,7 @@ def player_card(player_id):
     left = (w - side) // 2
     top = (h - side) // 2
     ph = ph.crop((left, top, left + side, top + side))
-    ph = ph.resize((480, 480), Image.Resampling.LANCZOS)
+    ph = ph.resize((480, 480), RESAMPLE_LANCZOS)
     # Make perfect circular mask
     mask = Image.new('L', (480, 480), 0)
     mdraw = ImageDraw.Draw(mask)
@@ -1663,18 +1669,27 @@ def events():
 
     @stream_with_context
     def gen():
+        heartbeat_sec = 15  # must be < gunicorn timeout
         try:
             # Send an initial state so clients can sync immediately
             init_msg = json.dumps({"type": "state", "version": auction_version, "payload": build_live_payload()})
             yield f"data: {init_msg}\n\n"
             while True:
-                msg = q.get()  # blocks until broadcast
-                # msg may be a JSON string; if not, wrap it
-                if isinstance(msg, str):
-                    yield f"data: {msg}\n\n"
-                else:
-                    wrapped = json.dumps({"type": "state", "version": auction_version, "payload": build_live_payload()})
-                    yield f"data: {wrapped}\n\n"
+                try:
+                    # Wait for broadcast, but wake up periodically to send heartbeat
+                    msg = q.get(timeout=heartbeat_sec)
+                    if isinstance(msg, str):
+                        yield f"data: {msg}\n\n"
+                    else:
+                        wrapped = json.dumps({"type": "state", "version": auction_version, "payload": build_live_payload()})
+                        yield f"data: {wrapped}\n\n"
+                except queue.Empty:
+                    # Heartbeat to keep connection and workers alive
+                    # SSE comment line is ignored by clients but keeps the stream active
+                    yield f": keep-alive {int(time.time())}\n\n"
+        except (GeneratorExit, BrokenPipeError, ConnectionAbortedError):
+            # Client disconnected
+            pass
         finally:
             _unsubscribe_sse(q)
 
@@ -1684,7 +1699,7 @@ def events():
         'X-Accel-Buffering': 'no',  # for nginx
         'Connection': 'keep-alive',
     }
-    return Response(gen(), headers=headers)
+    return Response(gen(), headers=headers, mimetype='text/event-stream')
 
 @app.route("/import-config", methods=["POST"])
 def import_config():
