@@ -84,31 +84,38 @@
       {% endif %}
     </div>
 
-    <!-- Quick Bidding Controls (no dropdowns) -->
-    <div class="card">
-      <h3>Quick Bid</h3>
-      {% if next_bid %}
-      <div class="label" style="margin-bottom: 6px;">Next: ₹{{ format_currency(next_bid) }}</div>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        {% for team in teams %}
-          {% set tl = team_limits.get(team) if team_limits else None %}
-          <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
-            <input type="hidden" name="team" value="{{ team }}">
-            <input type="hidden" name="bid_amount" value="{{ next_bid }}">
-            <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
-          </form>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div style="color:#94a3b8;">No higher increments available.</div>
-      {% endif %}
+    {% if auction_state.status in ["bidding", "going"] %}
+      <!-- Quick Bidding Controls (no dropdowns) -->
+      <div class="card">
+        <h3>Quick Bid</h3>
+        {% if next_bid %}
+        <div class="label" style="margin-bottom: 6px;">Next: ₹{{ format_currency(next_bid) }}</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          {% for team in teams %}
+            {% set tl = team_limits.get(team) if team_limits else None %}
+            <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
+              <input type="hidden" name="team" value="{{ team }}">
+              <input type="hidden" name="bid_amount" value="{{ next_bid }}">
+              <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
+            </form>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="color:#94a3b8;">No higher increments available.</div>
+        {% endif %}
 
-      <div style="display: flex; gap: 12px; margin-top: 16px;">
-        <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
-          <button class="btn" name="action" value="sold" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
-        </form>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+          <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
+            <button class="btn" name="action" value="sold" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
+          </form>
+        </div>
       </div>
-    </div>
+    {% else %}
+      <div class="card">
+        <div class="label">Current player sold</div>
+        <div style="color:#94a3b8;">Proceed when ready.</div>
+      </div>
+    {% endif %}
     {% endif %}
 
     <!-- Always-visible control for Next Player when sequential auction is active -->
