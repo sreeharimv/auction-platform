@@ -147,6 +147,60 @@ app.jinja_env.globals.update(int=int, format_currency=format_indian_currency, ge
 def dash_if_empty(value):
     return value if value and str(value).strip() and str(value) != 'nan' else '-'
 
+# Helper to compute per-team max bid capacity for a given player and current bid
+def compute_team_limits(df, player, current_bid):
+    config = load_config()
+    team_budget = config["teams"]["budget"]
+    base_price_rule = config["auction"]["base_price"]
+    max_players_allowed = config["teams"].get("max_players", 9)
+
+    # Determine next required bids relative to current auction state
+    effective_current = current_bid or 0
+    if effective_current < player["base_price"]:
+        min_next_bid = player["base_price"]
+        incs_after_base = [p for p in get_bid_increments(player["base_price"]) if p > player["base_price"]]
+        second_next_bid = incs_after_base[0] if incs_after_base else None
+    else:
+        next_prices = [p for p in get_bid_increments(effective_current) if p > effective_current]
+        min_next_bid = next_prices[0] if next_prices else None
+        second_next_bid = next_prices[1] if len(next_prices) > 1 else None
+
+    team_limits = {}
+    for team in TEAMS:
+        team_mask = (df["team"] == team)
+        spent = pd.to_numeric(df[team_mask]["sold_price"], errors="coerce").fillna(0).sum()
+        sold_count = len(df[team_mask & (df["status"].str.lower() == "sold")])
+        captain_count = len(df[team_mask & (df["status"].str.lower() == "captain")])
+
+        remaining = int(team_budget - int(spent))
+
+        # If already at or above max players (including captain), cannot bid
+        if sold_count + captain_count >= max_players_allowed:
+            max_bid = 0
+        else:
+            # Reserve budget for all remaining slots excluding captain and excluding already sold players
+            reserve_slots = max(0, max_players_allowed - captain_count - sold_count)
+            max_bid = remaining - (reserve_slots * base_price_rule)
+            max_bid = int(max(0, max_bid))
+
+        if min_next_bid is None:
+            can_bid_now = False
+        else:
+            can_bid_now = max_bid >= min_next_bid
+
+        near_limit = can_bid_now and (second_next_bid is not None) and (max_bid < second_next_bid)
+
+        team_limits[team] = {
+            "remaining": remaining,
+            "players": sold_count,  # exclude captain to reflect 'players taken'
+            "max_bid": max_bid,
+            "can_bid": max_bid >= player["base_price"],
+            "can_bid_now": can_bid_now,
+            "near_limit": near_limit,
+        }
+
+    return team_limits
+
 DATA_FILE = os.path.join(os.path.dirname(__file__), "players.csv")
 
 def load_players():
@@ -428,58 +482,7 @@ def live_bidding(player_id):
             else:
                 return redirect(url_for("auction"))
     
-    # Compute per-team max bid capacity for this player
-    team_limits = {}
-    # Load latest config in case settings changed
-    config = load_config()
-    team_budget = config["teams"]["budget"]
-    base_price_rule = config["auction"]["base_price"]
-
-    # Determine next required bids relative to current auction state
-    effective_current = current_auction.get("current_bid", 0)
-    # If current is below player's base, treat base as the first required bid
-    if effective_current < player["base_price"]:
-        min_next_bid = player["base_price"]
-        # Second next after base price using increments
-        incs_after_base = [p for p in get_bid_increments(player["base_price"]) if p > player["base_price"]]
-        second_next_bid = incs_after_base[0] if incs_after_base else None
-    else:
-        next_prices = [p for p in get_bid_increments(effective_current) if p > effective_current]
-        min_next_bid = next_prices[0] if next_prices else None
-        second_next_bid = next_prices[1] if len(next_prices) > 1 else None
-
-    for team in TEAMS:
-        spent = pd.to_numeric(df[df["team"] == team]["sold_price"], errors="coerce").fillna(0).sum()
-        players_count = len(df[(df["team"] == team) & (df["status"].str.lower().isin(["sold", "captain"]))])
-
-        remaining = int(team_budget - int(spent))
-
-        # If already at max players, cannot bid
-        if players_count >= 9:
-            max_bid = 0
-        else:
-            # Reserve budget to still reach minimum 8 players after this purchase
-            min_needed_after_this = max(0, 8 - (players_count + 1))
-            max_bid = remaining - (min_needed_after_this * base_price_rule)
-            max_bid = int(max(0, max_bid))
-
-        # Determine if team can place at least the next valid bid now
-        if min_next_bid is None:
-            can_bid_now = False
-        else:
-            can_bid_now = max_bid >= min_next_bid
-
-        # Flag if they are near limit (can only do one increment)
-        near_limit = can_bid_now and (second_next_bid is not None) and (max_bid < second_next_bid)
-
-        team_limits[team] = {
-            "remaining": remaining,
-            "players": players_count,
-            "max_bid": max_bid,
-            "can_bid": max_bid >= player["base_price"],
-            "can_bid_now": can_bid_now,
-            "near_limit": near_limit,
-        }
+    team_limits = compute_team_limits(df, player, current_auction.get("current_bid", 0))
 
     return render_template(
         "live_bidding.html",
@@ -494,11 +497,13 @@ def live_view():
     """Public live view of current bidding"""
     df = load_players()
     current_player = None
+    team_limits = None
     
     if current_auction["player_id"]:
         current_player = df[df["player_id"] == current_auction["player_id"]].iloc[0].to_dict()
+        team_limits = compute_team_limits(df, current_player, current_auction.get("current_bid", 0))
     
-    return render_template("live_view.html", current_player=current_player, auction_state=current_auction)
+    return render_template("live_view.html", current_player=current_player, auction_state=current_auction, team_limits=team_limits)
 
 @app.route("/start-sequential", methods=["POST"])
 def start_sequential():

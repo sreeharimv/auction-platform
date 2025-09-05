@@ -65,7 +65,7 @@
               ₹{{ format_currency(info.max_bid) }}
             </div>
             <div style="color: #94a3b8; font-size: 12px;">
-              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players }}/9
+              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players }}/{{ CONFIG.teams.max_players }}
             </div>
             {% if info.near_limit %}
               <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
