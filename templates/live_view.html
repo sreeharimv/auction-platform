@@ -23,6 +23,8 @@
       <button onclick="location.reload()" class="btn" style="margin-left: auto;">Refresh</button>
     </nav>
 
+    <div id="lv-annc" class="flash success" style="display:none; margin-top:12px;"></div>
+
     {% if current_player %}
     <div class="grid" style="margin-bottom: 20px; grid-template-columns: 360px 1fr; gap: 20px; align-items: stretch;">
       <!-- Left column: Larger player photo -->
@@ -143,7 +145,19 @@
               const root = document.getElementById('lv-root');
               const currentId = root ? root.getAttribute('data-player-id') : '';
               const newId = s.player ? String(s.player.id) : '';
-              if (!currentId || !newId || currentId !== newId) { location.reload(); return; }
+              // If a different non-empty player arrives, reload to rebuild UI
+              if ((!currentId && newId) || (currentId && newId && currentId !== newId)) { location.reload(); return; }
+
+              // Announcement banner
+              const anncEl = document.getElementById('lv-annc');
+              if (anncEl) {
+                if (s.announcement) {
+                  anncEl.textContent = s.announcement;
+                  anncEl.style.display = '';
+                } else {
+                  anncEl.style.display = 'none';
+                }
+              }
               // Patch DOM
               const bidEl = document.getElementById('lv-bid');
               const leaderEl = document.getElementById('lv-leader');

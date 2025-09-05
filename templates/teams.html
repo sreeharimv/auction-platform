@@ -25,9 +25,7 @@
     {% for team_name, team_info in team_data.items() %}
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h2 style="margin: 0; display:flex; align-items:center; gap:10px;">{{ team_name }}
-            <a href="{{ url_for('team_card', team_name=team_name) }}" class="btn secondary" style="padding: 6px 10px; font-size: 12px;">⤓ Team Card</a>
-          </h2>
+          <h2 style="margin: 0; display:flex; align-items:center; gap:10px;">{{ team_name }}</h2>
           <div style="text-align: right;">
             <div style="font-size: 18px; font-weight: bold;">{{ team_info.count }} {{ 'Player' if team_info.count == 1 else 'Players' }}</div>
             <div style="color: #94a3b8; font-size: 14px;">₹{{ format_currency(team_info.spent) }} spent</div>
@@ -43,7 +41,7 @@
                 <th style="text-align: center; width: 320px;">Name</th>
                 <th style="text-align: center; width: 220px;">Category</th>
                 <th style="text-align: center; width: 160px;">Price</th>
-                <th style="text-align: center; width: 100px;">Card</th>
+                
               </tr>
             </thead>
             <tbody>
@@ -58,11 +56,7 @@
                     ₹{{ format_currency(player.sold_price) if player.sold_price else '-' }}
                   {% endif %}
                 </td>
-                <td style="text-align: center; padding: 12px;">
-                  <a href="{{ url_for('player_card', player_id=player.player_id) }}" class="btn secondary" style="padding: 6px 10px; font-size: 12px;" title="Download player card">
-                    ⤓ Card
-                  </a>
-                </td>
+                
               </tr>
             {% endfor %}
             </tbody>
