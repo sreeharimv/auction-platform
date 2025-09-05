@@ -84,52 +84,39 @@
       {% endif %}
     </div>
 
-    <!-- Bidding Controls -->
+    <!-- Quick Bidding Controls (no dropdowns) -->
     <div class="card">
-      <h3>Place Bid</h3>
-      <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <select name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
-            <option value="">Select Team</option>
-            {% for team in teams %}
-            <option value="{{ team }}" {% if team == auction_state.current_team %}selected{% endif %}>{{ team }}</option>
-            {% endfor %}
-          </select>
-          <select name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
-            <option value="">Select Bid</option>
-            {% for price in get_bid_increments(auction_state.current_bid) %}
-            <option value="{{ price }}">₹{{ format_currency(price) }}</option>
-            {% endfor %}
-          </select>
-          <button class="btn" name="action" value="update_bid">Update Bid</button>
-        </div>
-      </form>
+      <h3>Quick Bid</h3>
       {% if next_bid %}
-      <div style="margin-top: 12px;">
-        <div class="label" style="margin-bottom: 6px;">Quick Bid (Next: ₹{{ format_currency(next_bid) }})</div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          {% for team in teams %}
-            {% set tl = team_limits.get(team) if team_limits else None %}
-            <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
-              <input type="hidden" name="team" value="{{ team }}">
-              <input type="hidden" name="bid_amount" value="{{ next_bid }}">
-              <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
-            </form>
-          {% endfor %}
-        </div>
+      <div class="label" style="margin-bottom: 6px;">Next: ₹{{ format_currency(next_bid) }}</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        {% for team in teams %}
+          {% set tl = team_limits.get(team) if team_limits else None %}
+          <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
+            <input type="hidden" name="team" value="{{ team }}">
+            <input type="hidden" name="bid_amount" value="{{ next_bid }}">
+            <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
+          </form>
+        {% endfor %}
       </div>
+      {% else %}
+      <div style="color:#94a3b8;">No higher increments available.</div>
       {% endif %}
-      
+
       <div style="display: flex; gap: 12px; margin-top: 16px;">
         <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display: inline;">
           <button class="btn" name="action" value="sold" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
         </form>
-        <form method="post" action="{{ url_for('next_player') }}" style="display: inline;">
-          <button class="btn" name="action" value="next" style="background: #334155;">Next Player</button>
-        </form>
       </div>
     </div>
     {% endif %}
+
+    <!-- Always-visible control for Next Player when sequential auction is active -->
+    <div class="card" style="margin-top: 16px;">
+      <form method="post" action="{{ url_for('next_player') }}" style="display: inline;">
+        <button class="btn" name="action" value="next" style="background: #334155;">Next Player</button>
+      </form>
+    </div>
 
   </div>
 </body>
