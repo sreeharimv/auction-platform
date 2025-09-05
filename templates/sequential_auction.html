@@ -76,6 +76,12 @@
         <div class="label">Status</div>
         <div class="metric" style="font-size: 18px; text-transform: uppercase;">{{ auction_state.status }}</div>
       </div>
+      {% if starting_team %}
+      <div class="card">
+        <div class="label">Starting Team</div>
+        <div class="metric" style="font-size: 18px;">{{ starting_team }}</div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Bidding Controls -->

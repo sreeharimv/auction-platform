@@ -263,7 +263,7 @@
       const maxAffordable = teamData.remaining - ((teamData.min_players - teamData.players - 1) * {{ base_price }});
       
       if (parseInt(price) > maxAffordable) {
-        alert(`${team} cannot afford ₹${parseInt(price).toLocaleString()}. Maximum affordable: ₹${maxAffordable.toLocaleString()}`);
+        alert(`${team} cannot afford ₹${formatCurrencyShort(parseInt(price))}. Maximum affordable: ₹${formatCurrencyShort(maxAffordable)}`);
         return;
       }
       
@@ -448,6 +448,21 @@
       
       document.body.appendChild(form);
       form.submit();
+    }
+  </script>
+  <script>
+    // JS currency formatting mirroring backend rules
+    function formatCurrencyShort(amount) {
+      if (amount >= 10000000) {
+        const crores = amount / 10000000;
+        const s = (Math.round((crores + 1e-9) * 100) / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+        return `${s}Cr`;
+      } else if (amount >= 100000) {
+        const lakhs = amount / 100000;
+        if (Number.isInteger(lakhs)) return `${lakhs}L`;
+        return `${lakhs.toFixed(1).replace(/\.0$/, '')}L`;
+      }
+      return amount.toLocaleString('en-IN');
     }
   </script>
   <!-- Custom Order Selection Modal -->

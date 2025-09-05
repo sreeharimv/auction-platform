@@ -50,6 +50,12 @@
         <div class="label">Status</div>
         <div class="metric" style="font-size: 18px; text-transform: uppercase;">{{ auction_state.status }}</div>
       </div>
+      {% if starting_team %}
+      <div class="card">
+        <div class="label">Starting Team</div>
+        <div class="metric" style="font-size: 20px;">{{ starting_team }}</div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Team Max Bid Capacity -->
@@ -62,10 +68,10 @@
           <div class="card" style="padding: 16px;">
             <div class="label">{{ team }}</div>
             <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
-              ₹{{ format_currency(info.max_bid) }}
+              ₹{{ format_currency(info.max_valid_bid) }}
             </div>
             <div style="color: #94a3b8; font-size: 12px;">
-              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players }}/{{ CONFIG.teams.max_players }}
+              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players_with_captain }}/{{ CONFIG.teams.max_players }}
             </div>
             {% if info.near_limit %}
               <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
@@ -105,9 +111,9 @@
           <select id="bidSelect" name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
             <option value="">Select Higher Bid</option>
             {% for price in get_bid_increments(auction_state.current_bid) %}
-            {% if price > auction_state.current_bid %}
-            <option value="{{ price }}">₹{{ format_currency(price) }}</option>
-            {% endif %}
+              {% if price > auction_state.current_bid or (price == auction_state.current_bid and not auction_state.current_team) %}
+                <option value="{{ price }}">₹{{ format_currency(price) }}</option>
+              {% endif %}
             {% endfor %}
           </select>
           <button class="btn" name="action" value="update_bid">Update Bid</button>
@@ -144,15 +150,16 @@
       const bidSel = document.getElementById('bidSelect');
       const team = teamSel.value;
       if (!team) return;
-      const tl = teamLimits[team];
-      if (!tl) return;
-      [...bidSel.options].forEach(opt => {
-        if (!opt.value) return;
-        const price = parseInt(opt.value);
-        // Hide bids above team's max
-        opt.disabled = price > tl.max_bid;
-        opt.style.display = price > tl.max_bid ? 'none' : 'block';
-      });
+        const tl = teamLimits[team];
+        if (!tl) return;
+        [...bidSel.options].forEach(opt => {
+          if (!opt.value) return;
+          const price = parseInt(opt.value);
+          // Hide bids above team's highest valid bid
+          const cap = tl.max_valid_bid ?? tl.max_bid;
+          opt.disabled = price > cap;
+          opt.style.display = price > cap ? 'none' : 'block';
+        });
       // If current selection invalid, reset
       if (bidSel.value && parseInt(bidSel.value) > tl.max_bid) {
         bidSel.value = '';

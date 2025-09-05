@@ -80,10 +80,10 @@ def format_indian_currency(amount):
     amount = int(amount)
     if amount >= 10000000:  # 1 Crore or more
         crores = amount / 10000000
-        if crores == int(crores):
-            return f"{int(crores)}Cr"
-        else:
-            return f"{crores:.1f}Cr"
+        # Show up to 2 decimals (e.g., 1.25Cr, 1.75Cr) and trim trailing zeros
+        crores_rounded = round(crores + 1e-9, 2)  # tiny epsilon to avoid 1.249999
+        s = f"{crores_rounded:.2f}".rstrip('0').rstrip('.')
+        return f"{s}Cr"
     elif amount >= 100000:  # 1 Lakh or more
         lakhs = amount / 100000
         if lakhs == int(lakhs):
@@ -148,7 +148,7 @@ def dash_if_empty(value):
     return value if value and str(value).strip() and str(value) != 'nan' else '-'
 
 # Helper to compute per-team max bid capacity for a given player and current bid
-def compute_team_limits(df, player, current_bid):
+def compute_team_limits(df, player, current_bid, current_team=""):
     config = load_config()
     team_budget = config["teams"]["budget"]
     base_price_rule = config["auction"]["base_price"]
@@ -156,7 +156,9 @@ def compute_team_limits(df, player, current_bid):
 
     # Determine next required bids relative to current auction state
     effective_current = current_bid or 0
-    if effective_current < player["base_price"]:
+    no_leading_bid = (not current_team)
+    if effective_current <= player["base_price"] and no_leading_bid:
+        # First bid can be at base price
         min_next_bid = player["base_price"]
         incs_after_base = [p for p in get_bid_increments(player["base_price"]) if p > player["base_price"]]
         second_next_bid = incs_after_base[0] if incs_after_base else None
@@ -178,8 +180,8 @@ def compute_team_limits(df, player, current_bid):
         if sold_count + captain_count >= max_players_allowed:
             max_bid = 0
         else:
-            # Reserve budget for all remaining slots excluding captain and excluding already sold players
-            reserve_slots = max(0, max_players_allowed - captain_count - sold_count)
+            # Reserve budget for remaining slots AFTER buying this player (exclude captain and this player)
+            reserve_slots = max(0, max_players_allowed - captain_count - sold_count - 1)
             max_bid = remaining - (reserve_slots * base_price_rule)
             max_bid = int(max(0, max_bid))
 
@@ -190,16 +192,54 @@ def compute_team_limits(df, player, current_bid):
 
         near_limit = can_bid_now and (second_next_bid is not None) and (max_bid < second_next_bid)
 
+        # Compute highest valid bid reachable within increments (not exceeding max_bid)
+        def next_step(val):
+            if val < base_price_rule * 2:
+                return val + config["auction"]["increments"][0]
+            elif val < base_price_rule * 4:
+                return val + config["auction"]["increments"][1]
+            else:
+                return val + config["auction"]["increments"][2]
+
+        # Starting point: first required bid (min_next_bid). If no leading team and current at base, this is base.
+        highest_valid = 0
+        start = min_next_bid
+        # If still none, nothing is reachable
+        if start is not None and max_bid >= start:
+            cand = start
+            # Iterate up to a safe bound
+            for _ in range(200):
+                if cand <= max_bid:
+                    highest_valid = cand
+                else:
+                    break
+                new_val = next_step(cand)
+                if new_val == cand:
+                    break
+                cand = new_val
+
         team_limits[team] = {
             "remaining": remaining,
-            "players": sold_count,  # exclude captain to reflect 'players taken'
+            "players": sold_count,  # sold-only
+            "players_with_captain": sold_count + captain_count,
             "max_bid": max_bid,
+            "max_valid_bid": highest_valid,
             "can_bid": max_bid >= player["base_price"],
             "can_bid_now": can_bid_now,
             "near_limit": near_limit,
         }
 
     return team_limits
+
+# Helper: compute starting team for current player in sequential auction
+def compute_starting_team():
+    try:
+        if sequential_auction.get("active") and TEAMS:
+            idx = sequential_auction.get("current_index", 0)
+            return TEAMS[idx % len(TEAMS)]
+    except Exception:
+        pass
+    return None
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "players.csv")
 
@@ -346,9 +386,13 @@ def auction():
                 
                 # Validate bid
                 if team_spent + sold_price > TEAM_BUDGET:
-                    flash(f"{team} budget exceeded! Remaining: ₹{remaining_budget:,}", "error")
+                    flash(f"{team} budget exceeded! Remaining: ₹{format_indian_currency(remaining_budget)}", "error")
                 elif sold_price > max_allowed_bid:
-                    flash(f"Max bid allowed: ₹{max_allowed_bid:,} (Need ₹{players_needed_after_this * BASE_PRICE:,} for {players_needed_after_this} more players)", "error")
+                    flash(
+                        f"Max bid allowed: ₹{format_indian_currency(max_allowed_bid)} "
+                        f"(Need ₹{format_indian_currency(players_needed_after_this * BASE_PRICE)} for {players_needed_after_this} more players)",
+                        "error",
+                    )
                 else:
                     df.at[i, "team"] = team
                     df.at[i, "status"] = "sold"
@@ -429,7 +473,7 @@ def live_bidding(player_id):
             current_auction["current_bid"] = player["base_price"]
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
-            flash(f"Started bidding for {player['name']} at base price ₹{player['base_price']:,}", "info")
+            flash(f"Started bidding for {player['name']} at base price ₹{format_indian_currency(player['base_price'])}", "info")
             
         elif action == "update_bid":
             try:
@@ -450,16 +494,28 @@ def live_bidding(player_id):
                 flash("Invalid team selection.", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
-            if new_bid <= current_auction.get("current_bid", 0):
-                flash("Bid must be higher than current bid.", "error")
-                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+            current_bid_val = current_auction.get("current_bid", 0)
+            current_team_val = current_auction.get("current_team", "")
+            if current_team_val:
+                # There is a leading bid; must outbid
+                if new_bid <= current_bid_val:
+                    flash("Bid must be higher than current bid.", "error")
+                    return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+            else:
+                # First bid can be at base price/current shown
+                if new_bid < current_bid_val:
+                    flash("Bid must be at least the current/base price.", "error")
+                    return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
             if new_bid > tl["max_bid"]:
                 flash(f"{team} cannot afford ₹{format_indian_currency(new_bid)}. Max allowed: ₹{format_indian_currency(tl['max_bid'])}", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
             # Server-side increment validation
-            valid_next = [p for p in get_bid_increments(current_auction.get("current_bid", 0)) if p > current_auction.get("current_bid", 0)]
+            valid_next = [p for p in get_bid_increments(current_bid_val) if p > current_bid_val]
+            # Allow selecting the current/base as first bid if no leading team
+            if not current_team_val and current_bid_val >= player["base_price"]:
+                valid_next.append(current_bid_val)
             if new_bid not in valid_next:
                 flash("Invalid increment selected.", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
@@ -525,7 +581,13 @@ def live_bidding(player_id):
             else:
                 return redirect(url_for("auction"))
     
-    team_limits = compute_team_limits(df, player, current_auction.get("current_bid", 0))
+    team_limits = compute_team_limits(
+        df,
+        player,
+        current_auction.get("current_bid", 0),
+        current_team=current_auction.get("current_team", ""),
+    )
+    starting_team = compute_starting_team()
 
     return render_template(
         "live_bidding.html",
@@ -533,6 +595,7 @@ def live_bidding(player_id):
         auction_state=current_auction,
         teams=TEAMS,
         team_limits=team_limits,
+        starting_team=starting_team,
     )
 
 @app.route("/live-view")
@@ -541,12 +604,17 @@ def live_view():
     df = load_players()
     current_player = None
     team_limits = None
-    
+    starting_team = compute_starting_team()
     if current_auction["player_id"]:
         current_player = df[df["player_id"] == current_auction["player_id"]].iloc[0].to_dict()
-        team_limits = compute_team_limits(df, current_player, current_auction.get("current_bid", 0))
+        team_limits = compute_team_limits(
+            df,
+            current_player,
+            current_auction.get("current_bid", 0),
+            current_team=current_auction.get("current_team", ""),
+        )
     
-    return render_template("live_view.html", current_player=current_player, auction_state=current_auction, team_limits=team_limits)
+    return render_template("live_view.html", current_player=current_player, auction_state=current_auction, team_limits=team_limits, starting_team=starting_team)
 
 @app.route("/start-sequential", methods=["POST"])
 def start_sequential():
@@ -629,7 +697,8 @@ def sequential_auction_page():
                          auction_state=current_auction,
                          team_budgets=team_spending,
                          teams=TEAMS,
-                         progress=progress)
+                         progress=progress,
+                         starting_team=compute_starting_team())
 
 @app.route("/next-player", methods=["POST"])
 def next_player():
