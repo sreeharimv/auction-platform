@@ -1532,5 +1532,79 @@ def import_config():
     
     return redirect(url_for("tournament_settings"))
 
+# Lightweight APIs for faster admin interactions (no full page reload)
+@app.route('/api/bid', methods=['POST'])
+def api_bid():
+    if not session.get("is_admin"):
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    try:
+        data = request.get_json(silent=True) or {}
+        player_id = int(data.get('player_id') or current_auction.get('player_id') or 0)
+        team = (data.get('team') or '').strip()
+        if not player_id or not team:
+            return jsonify({"ok": False, "error": "Missing player_id or team"}), 400
+        df = load_players()
+        row = df[df['player_id'] == player_id]
+        if row.empty:
+            return jsonify({"ok": False, "error": "Player not found"}), 404
+        player = row.iloc[0].to_dict()
+        # Compute next required bid
+        has_leader = bool(current_auction.get('current_team'))
+        next_bid = get_next_required_bid(current_auction.get('current_bid', 0), player.get('base_price', 0), has_leader)
+        if next_bid is None:
+            return jsonify({"ok": False, "error": "No higher increments available"}), 400
+        # Validate team eligibility
+        limits = compute_team_limits(df, player, current_auction.get('current_bid', 0), current_team=current_auction.get('current_team', ''))
+        tl = limits.get(team)
+        if not tl or not tl.get('can_bid_now'):
+            return jsonify({"ok": False, "error": "Team not eligible for next bid"}), 400
+        # Apply bid
+        current_auction['player_id'] = player_id
+        current_auction['current_bid'] = next_bid
+        current_auction['current_team'] = team
+        current_auction['status'] = 'bidding'
+        broadcast_state()
+        return jsonify({"ok": True, "next_bid": next_bid})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route('/api/sold', methods=['POST'])
+def api_sold():
+    if not session.get("is_admin"):
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    try:
+        data = request.get_json(silent=True) or {}
+        player_id = int(data.get('player_id') or current_auction.get('player_id') or 0)
+        if not player_id:
+            return jsonify({"ok": False, "error": "No active player"}), 400
+        df = load_players()
+        idxs = df.index[df['player_id'] == player_id]
+        if len(idxs) == 0:
+            return jsonify({"ok": False, "error": "Player not found"}), 404
+        idx = idxs[0]
+        # Require a leading team
+        sale_team = current_auction.get('current_team') or ''
+        if not sale_team:
+            return jsonify({"ok": False, "error": "No leading team to mark SOLD"}), 400
+        # Validate budget
+        player = df.iloc[idx].to_dict()
+        limits = compute_team_limits(df, player, current_auction.get('current_bid', 0), current_team=current_auction.get('current_team', ''))
+        tl = limits.get(sale_team)
+        if not tl or current_auction.get('current_bid', 0) > tl.get('max_bid', 0):
+            return jsonify({"ok": False, "error": "Team cannot complete purchase"}), 400
+        # Persist sale
+        df.at[idx, 'team'] = sale_team
+        df.at[idx, 'status'] = 'sold'
+        df.at[idx, 'sold_price'] = int(current_auction.get('current_bid', 0))
+        df.at[idx, 'sold_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_players(df)
+        # Announce and keep SOLD state for viewers
+        current_auction['announcement'] = f"SOLD! {df.at[idx, 'name']} to {sale_team} for ₹{format_indian_currency(df.at[idx, 'sold_price'])}"
+        current_auction['status'] = 'sold'
+        broadcast_state()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)

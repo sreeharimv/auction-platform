@@ -117,11 +117,7 @@
         <div id="lb-team-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
           {% for team in teams %}
             {% set tl = team_limits.get(team) %}
-            <form method="post" style="display: inline;">
-              <input type="hidden" name="team" value="{{ team }}">
-              <input id="lb-next-{{ loop.index }}" type="hidden" name="bid_amount" value="{{ next_bid }}">
-              <button data-team="{{ team }}" class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
-            </form>
+            <button data-team="{{ team }}" class="btn lb-quick" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
           {% endfor %}
         </div>
       {% else %}
@@ -129,9 +125,7 @@
       {% endif %}
 
       <div style="display: flex; gap: 12px; margin-top: 16px;">
-        <form method="post" style="display: inline;">
-          <button class="btn" name="action" value="sold" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
-        </form>
+        <button id="lb-sold" class="btn" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
       </div>
     </div>
     {% endif %}
@@ -220,6 +214,33 @@
           es.onerror = function(){ try{es.close();}catch(e){} setTimeout(connect, 1000); };
         }catch(e){ setTimeout(connect, 1500); }
       }
+      // Intercept quick-bid buttons to call fast API
+      function bindActions(){
+        const buttons = document.querySelectorAll('.lb-quick');
+        buttons.forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (btn.disabled) return;
+            btn.disabled = true; setTimeout(()=>{btn.disabled=false;}, 600);
+            const team = btn.getAttribute('data-team');
+            try{
+              await fetch('{{ url_for('api_bid') }}', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ player_id: {{ player.player_id }}, team })
+              });
+            }catch(e){}
+          });
+        });
+        const soldBtn = document.getElementById('lb-sold');
+        if (soldBtn){
+          soldBtn.addEventListener('click', async (e)=>{
+            e.preventDefault();
+            soldBtn.disabled = true; setTimeout(()=>{soldBtn.disabled=false;}, 800);
+            try{ await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ player.player_id }} }) }); }catch(e){}
+          });
+        }
+      }
+      bindActions();
       connect();
     })();
   </script>
