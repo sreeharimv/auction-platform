@@ -103,21 +103,23 @@ def build_live_payload():
                 "base_price": int(p.get("base_price") or 0),
                 "photo": p.get("photo") or "default.png",
             }
-            limits = compute_team_limits(df, p, current_auction.get("current_bid", 0), current_team=current_auction.get("current_team", ""))
-            # Only eligible teams; convert to list of dicts
-            eligible = []
-            for team, info in limits.items():
-                if info.get("can_bid_now"):
-                    eligible.append({
-                        "team": team,
-                        "max_valid_bid": int(info.get("max_valid_bid") or 0),
-                        "remaining": int(info.get("remaining") or 0),
-                        "players_with_captain": int(info.get("players_with_captain") or 0),
-                        "near_limit": bool(info.get("near_limit")),
-                    })
-            # Sort eligible by highest max_valid_bid desc
-            eligible.sort(key=lambda x: x["max_valid_bid"], reverse=True)
-            payload["eligible"] = eligible
+            # If already sold, don't show eligible bidders
+            if (current_auction.get("status") or "").lower() != "sold":
+                limits = compute_team_limits(df, p, current_auction.get("current_bid", 0), current_team=current_auction.get("current_team", ""))
+                # Only eligible teams; convert to list of dicts
+                eligible = []
+                for team, info in limits.items():
+                    if info.get("can_bid_now"):
+                        eligible.append({
+                            "team": team,
+                            "max_valid_bid": int(info.get("max_valid_bid") or 0),
+                            "remaining": int(info.get("remaining") or 0),
+                            "players_with_captain": int(info.get("players_with_captain") or 0),
+                            "near_limit": bool(info.get("near_limit")),
+                        })
+                # Sort eligible by highest max_valid_bid desc
+                eligible.sort(key=lambda x: x["max_valid_bid"], reverse=True)
+                payload["eligible"] = eligible
     return payload
 
 def broadcast_state():
@@ -660,13 +662,9 @@ def live_bidding(player_id):
             df.at[idx, "sold_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             save_players(df)
             
-            # Set announcement for public live view
+            # Set announcement for public live view and keep state as SOLD
             current_auction["announcement"] = f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{format_indian_currency(df.at[idx, 'sold_price'])}"
-            # Reset live auction state (no auto-advance). Admin will click Next.
-            current_auction["player_id"] = None
-            current_auction["current_bid"] = 0
-            current_auction["current_team"] = ""
-            current_auction["status"] = "waiting"
+            current_auction["status"] = "sold"
             broadcast_state()
 
             flash(f"SOLD! {player['name']} to {df.at[idx, 'team']} for ₹{format_indian_currency(df.at[idx, 'sold_price'])}", "success")
@@ -709,12 +707,14 @@ def live_view():
     starting_team = compute_starting_team()
     if current_auction["player_id"]:
         current_player = df[df["player_id"] == current_auction["player_id"]].iloc[0].to_dict()
-        team_limits = compute_team_limits(
-            df,
-            current_player,
-            current_auction.get("current_bid", 0),
-            current_team=current_auction.get("current_team", ""),
-        )
+        # Only compute team limits if still in bidding/going state
+        if (current_auction.get("status") or "").lower() not in ("sold", "waiting"):
+            team_limits = compute_team_limits(
+                df,
+                current_player,
+                current_auction.get("current_bid", 0),
+                current_team=current_auction.get("current_team", ""),
+            )
     
     return render_template("live_view.html", current_player=current_player, auction_state=current_auction, team_limits=team_limits, starting_team=starting_team, auction_version=auction_version)
 

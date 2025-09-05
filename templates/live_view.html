@@ -66,8 +66,8 @@
           {% endif %}
         </div>
 
-        <!-- Row 3: Teams who can bid now -->
-        {% if team_limits %}
+        <!-- Row 3: Teams who can bid now (hidden when sold) -->
+        {% if team_limits and auction_state.status != 'sold' %}
           {% set eligible = team_limits.values()|selectattr('can_bid_now')|list %}
           <div id="lv-eligible-container" class="card" style="padding: 12px;">
             <h3 style="margin: 0 0 8px;">Teams Who Can Bid Now</h3>
@@ -167,6 +167,7 @@
               const startingEl = document.getElementById('lv-starting');
               const eligibleGrid = document.getElementById('lv-eligible-grid');
               const eligibleEmpty = document.getElementById('lv-eligible-empty');
+              const eligibleContainer = document.getElementById('lv-eligible-container');
 
               if (bidEl) bidEl.textContent = '₹' + formatCurrencyShort(s.auction.current_bid || 0);
               if (leaderEl) leaderEl.textContent = s.auction.current_team || 'No bids yet';
@@ -176,33 +177,40 @@
                 if (emojiEl) statusEl.appendChild(emojiEl);
                 if (st === 'going') { statusEl.style.color = '#f59e0b'; if (emojiEl) emojiEl.textContent = '🔥'; }
                 else if (st === 'bidding') { statusEl.style.color = '#10b981'; if (emojiEl) emojiEl.textContent = '⚡'; }
+                else if (st === 'sold') { statusEl.style.color = '#10b981'; if (emojiEl) emojiEl.textContent = '✔️'; }
                 else { statusEl.style.color = '#94a3b8'; if (emojiEl) emojiEl.textContent = ''; }
               }
               if (startingWrap) {
                 if (s.starting_team) { startingWrap.style.display = ''; if (startingEl) startingEl.textContent = s.starting_team; }
                 else { startingWrap.style.display = 'none'; }
               }
-              // Rebuild eligible teams
-              if (eligibleGrid || eligibleEmpty) {
-                const elig = Array.isArray(s.eligible) ? s.eligible : [];
-                if (elig.length === 0) {
-                  if (eligibleGrid) eligibleGrid.innerHTML = '';
-                  if (eligibleEmpty) eligibleEmpty.style.display = '';
+              // Rebuild eligible teams or hide when sold
+              const st = (s.auction.status || '').toLowerCase();
+              if (eligibleGrid || eligibleEmpty || eligibleContainer) {
+                if (st === 'sold') {
+                  if (eligibleContainer) eligibleContainer.style.display = 'none';
                 } else {
-                  if (eligibleEmpty) eligibleEmpty.style.display = 'none';
-                  if (eligibleGrid) {
-                    eligibleGrid.innerHTML = elig.map(item => `
-                      <div class="card" style="padding: 12px;">
-                        <div class="label">${item.team}</div>
-                        <div class="metric" style="color: ${item.near_limit ? '#f59e0b' : '#10b981'};">
-                          ₹${formatCurrencyShort(item.max_valid_bid || 0)}
+                  if (eligibleContainer) eligibleContainer.style.display = '';
+                  const elig = Array.isArray(s.eligible) ? s.eligible : [];
+                  if (elig.length === 0) {
+                    if (eligibleGrid) eligibleGrid.innerHTML = '';
+                    if (eligibleEmpty) eligibleEmpty.style.display = '';
+                  } else {
+                    if (eligibleEmpty) eligibleEmpty.style.display = 'none';
+                    if (eligibleGrid) {
+                      eligibleGrid.innerHTML = elig.map(item => `
+                        <div class="card" style="padding: 12px;">
+                          <div class="label">${item.team}</div>
+                          <div class="metric" style="color: ${item.near_limit ? '#f59e0b' : '#10b981'};">
+                            ₹${formatCurrencyShort(item.max_valid_bid || 0)}
+                          </div>
+                          <div style="color: #94a3b8; font-size: 12px;">
+                            Remaining: ₹${formatCurrencyShort(item.remaining || 0)} • Players: ${item.players_with_captain}/{{ CONFIG.teams.max_players }}
+                          </div>
+                          ${item.near_limit ? '<div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>' : ''}
                         </div>
-                        <div style="color: #94a3b8; font-size: 12px;">
-                          Remaining: ₹${formatCurrencyShort(item.remaining || 0)} • Players: ${item.players_with_captain}/{{ CONFIG.teams.max_players }}
-                        </div>
-                        ${item.near_limit ? '<div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>' : ''}
-                      </div>
-                    `).join('');
+                      `).join('');
+                    }
                   }
                 }
               }
