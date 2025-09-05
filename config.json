@@ -10,8 +10,8 @@
       "Palace Titans",
       "Palace Warriors"
     ],
-    "budget": 250000000,
-    "min_players": 8,
+    "budget": 120000000,
+    "min_players": 9,
     "max_players": 9
   },
   "auction": {
@@ -20,7 +20,7 @@
     "increments": [
       1000000,
       2500000,
-      5000000
+      2500000
     ]
   },
   "players": {
