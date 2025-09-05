@@ -109,32 +109,25 @@
     {% endif %}
 
     {% if auction_state.status in ["bidding", "going"] %}
-    <!-- Bidding Controls -->
+    <!-- Quick Bidding Controls -->
     <div class="card">
-      <h3>Place Bid</h3>
-      <form method="post">
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <select id="teamSelect" name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
-            <option value="">Select Team</option>
-            {% for team in teams %}
+      <h3>Quick Bid</h3>
+      {% if next_bid %}
+        <div class="label" style="margin-bottom: 6px;">Next Required Bid: ₹{{ format_currency(next_bid) }}</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          {% for team in teams %}
             {% set tl = team_limits.get(team) %}
-            <option value="{{ team }}" {% if team == auction_state.current_team %}selected{% endif %} data-eligible="{{ '1' if tl and tl.can_bid_now else '0' }}">
-              {{ team }}{% if tl and not tl.can_bid_now %} (blocked){% endif %}
-            </option>
-            {% endfor %}
-          </select>
-          <select id="bidSelect" name="bid_amount" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 12px; border-radius: 8px;">
-            <option value="">Select Higher Bid</option>
-            {% for price in get_bid_increments(auction_state.current_bid) %}
-              {% if price > auction_state.current_bid or (price == auction_state.current_bid and not auction_state.current_team) %}
-                <option value="{{ price }}">₹{{ format_currency(price) }}</option>
-              {% endif %}
-            {% endfor %}
-          </select>
-          <button class="btn" name="action" value="update_bid">Update Bid</button>
+            <form method="post" style="display: inline;">
+              <input type="hidden" name="team" value="{{ team }}">
+              <input type="hidden" name="bid_amount" value="{{ next_bid }}">
+              <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
+            </form>
+          {% endfor %}
         </div>
-      </form>
-      
+      {% else %}
+        <div style="color:#94a3b8;">No higher increments available.</div>
+      {% endif %}
+
       <div style="display: flex; gap: 12px; margin-top: 16px;">
         <form method="post" style="display: inline;">
           <button class="btn" name="action" value="sold" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
@@ -144,49 +137,5 @@
     {% endif %}
 
   </div>
-  <script>
-    const teamLimits = {{ team_limits|tojson }};
-    const currentBid = {{ auction_state.current_bid or 0 }};
-    const basePrice = {{ player.base_price }};
-
-    function filterTeams() {
-      const sel = document.getElementById('teamSelect');
-      if (!sel) return;
-      [...sel.options].forEach(opt => {
-        if (!opt.value) return;
-        const tl = teamLimits[opt.value];
-        const eligible = tl && tl.can_bid_now;
-        opt.disabled = !eligible;
-      });
-    }
-
-    function filterBids() {
-      const teamSel = document.getElementById('teamSelect');
-      const bidSel = document.getElementById('bidSelect');
-      const team = teamSel.value;
-      if (!team) return;
-        const tl = teamLimits[team];
-        if (!tl) return;
-        [...bidSel.options].forEach(opt => {
-          if (!opt.value) return;
-          const price = parseInt(opt.value);
-          // Hide bids above team's highest valid bid
-          const cap = tl.max_valid_bid ?? tl.max_bid;
-          opt.disabled = price > cap;
-          opt.style.display = price > cap ? 'none' : 'block';
-        });
-      // If current selection invalid, reset
-      if (bidSel.value && parseInt(bidSel.value) > tl.max_bid) {
-        bidSel.value = '';
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      filterTeams();
-      filterBids();
-      const teamSel = document.getElementById('teamSelect');
-      teamSel && teamSel.addEventListener('change', filterBids);
-    });
-  </script>
 </body>
 </html>
