@@ -436,14 +436,17 @@ def migrate_csv_to_db():
             df = pd.read_csv(csv_file)
             if not df.empty:
                 conn = sqlite3.connect(DB_FILE)
-                # Check if database is empty
-                count = conn.execute("SELECT COUNT(*) FROM players").fetchone()[0]
-                if count == 0:
-                    df.to_sql('players', conn, if_exists='replace', index=False)
-                    print(f"Migrated {len(df)} players from CSV to SQLite")
+                # Always migrate from CSV to ensure we're using SQLite
+                df.to_sql('players', conn, if_exists='replace', index=False)
+                print(f"Migrated {len(df)} players from CSV to SQLite")
+                # Remove CSV file after successful migration
+                os.remove(csv_file)
+                print("Removed CSV file after migration")
                 conn.close()
         except Exception as e:
             print(f"CSV migration failed: {e}")
+    else:
+        print("No CSV file found, using SQLite database")
 
 migrate_csv_to_db()
 
