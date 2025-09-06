@@ -90,6 +90,7 @@ def build_live_payload():
         "starting_team": compute_starting_team(),
         "player": None,
         "eligible": [],
+        "next_bid": None,
         "announcement": current_auction.get("announcement"),
     }
     if current_auction.get("player_id"):
@@ -120,6 +121,12 @@ def build_live_payload():
                 # Sort eligible by highest max_valid_bid desc
                 eligible.sort(key=lambda x: x["max_valid_bid"], reverse=True)
                 payload["eligible"] = eligible
+                # Calculate next required bid
+                payload["next_bid"] = get_next_required_bid(
+                    current_auction.get("current_bid", 0),
+                    p.get("base_price", 0),
+                    bool(current_auction.get("current_team")),
+                )
     return payload
 
 def broadcast_state():
