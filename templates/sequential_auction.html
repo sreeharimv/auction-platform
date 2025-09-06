@@ -187,6 +187,29 @@
         if (st === 'bidding' || st === 'going'){ quick.style.display = 'block'; sold.style.display = 'none'; }
         else { quick.style.display = 'none'; sold.style.display = 'block'; }
       }
+      function updateEligibleTeamsDisplay(elig){
+        const eligibleGrid = document.getElementById('sa-eligible-grid');
+        const eligibleEmpty = document.getElementById('sa-eligible-empty');
+        if (!eligibleGrid || !eligibleEmpty) return;
+        if (elig.length === 0) {
+          eligibleGrid.innerHTML = '';
+          eligibleEmpty.style.display = '';
+        } else {
+          eligibleEmpty.style.display = 'none';
+          eligibleGrid.innerHTML = elig.map(item => `
+            <div class="card" style="padding: 12px;">
+              <div class="label">${item.team}</div>
+              <div class="metric" style="color: ${item.near_limit ? '#f59e0b' : '#10b981'};">
+                ₹${formatCurrencyShort(item.max_valid_bid || 0)}
+              </div>
+              <div style="color: #94a3b8; font-size: 12px;">
+                Remaining: ₹${formatCurrencyShort(item.remaining || 0)} • Players: ${item.players_with_captain}/${MAX_PLAYERS}
+              </div>
+              ${item.near_limit ? '<div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>' : ''}
+            </div>
+          `).join('');
+        }
+      }
 
       // Bind quick actions to fast API
       function bindActions(){
@@ -266,6 +289,9 @@
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
                 CURRENT_PLAYER_ID = p.id;
+                // Update eligible teams for new player
+                const elig = Array.isArray(s.eligible) ? s.eligible : [];
+                updateEligibleTeamsDisplay(elig);
               }
               
               // Update bid info
@@ -276,11 +302,12 @@
               if (leaderEl) leaderEl.textContent = a.current_team || 'No bids yet';
               if (statusEl) statusEl.textContent = (a.status || '').toUpperCase();
               
-              // Update quick bid section
+              // Update quick bid section and eligible teams display
               if ((a.status||'').toLowerCase() === 'bidding' || (a.status||'').toLowerCase() === 'going'){
                 const nextBid = s.next_bid || 0;
-                const elig = Array.isArray(s.eligible) ? s.eligible.map(e=>e.team) : [];
-                updateButtons(nextBid, elig);
+                const elig = Array.isArray(s.eligible) ? s.eligible : [];
+                updateButtons(nextBid, elig.map(e=>e.team));
+                updateEligibleTeamsDisplay(elig);
               }
               
               toggleCards(a.status);
