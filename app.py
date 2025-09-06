@@ -243,24 +243,43 @@ def compute_team_limits(df, player, current_bid, current_team=""):
     # Determine next required bids relative to current auction state
     effective_current = current_bid or 0
     no_leading_bid = (not current_team)
-    if effective_current <= player["base_price"] and no_leading_bid:
-        # First bid can be at base price
-        min_next_bid = player["base_price"]
-        incs_after_base = [p for p in get_bid_increments(player["base_price"]) if p > player["base_price"]]
-        second_next_bid = incs_after_base[0] if incs_after_base else None
-    else:
-        next_prices = [p for p in get_bid_increments(effective_current) if p > effective_current]
-        min_next_bid = next_prices[0] if next_prices else None
-        second_next_bid = next_prices[1] if len(next_prices) > 1 else None
-
-    team_limits = {}
-    # Precompute aggregates
+    # Precompute aggregates for all teams
     df_status = df.get("status", pd.Series(dtype=str)).astype(str).str.lower()
     df_team = df.get("team", pd.Series(dtype=str))
     sold_prices = pd.to_numeric(df.get("sold_price", pd.Series(dtype=float)), errors="coerce").fillna(0)
     spent_by_team = sold_prices.groupby(df_team).sum()
     sold_count_by_team = (df_status == "sold").groupby(df_team).sum()
     captain_count_by_team = (df_status == "captain").groupby(df_team).sum()
+    # Last-slot rule: if any team would reach max with this purchase
+    last_slot_exists = False
+    for team in TEAMS:
+        sold_count = int(sold_count_by_team.get(team, 0))
+        captain_count = int(captain_count_by_team.get(team, 0))
+        if sold_count + captain_count == max_players_allowed - 1:
+            last_slot_exists = True
+            break
+
+    if effective_current <= player["base_price"] and no_leading_bid:
+        # First bid can be at base price
+        min_next_bid = player["base_price"]
+        # For second next bid, depend on rule
+        step = CONFIG["auction"]["increments"][0] if last_slot_exists else (
+            CONFIG["auction"]["increments"][0] if player["base_price"] < base_price_rule * 2 else (
+                CONFIG["auction"]["increments"][1] if player["base_price"] < base_price_rule * 4 else CONFIG["auction"]["increments"][2]
+            )
+        )
+        second_next_bid = min_next_bid + step if min_next_bid is not None else None
+    else:
+        # Next price based on increments; allow smallest slab if last-slot rule applies
+        if last_slot_exists:
+            min_next_bid = effective_current + CONFIG["auction"]["increments"][0]
+            second_next_bid = min_next_bid + CONFIG["auction"]["increments"][0]
+        else:
+            next_prices = [p for p in get_bid_increments(effective_current) if p > effective_current]
+            min_next_bid = next_prices[0] if next_prices else None
+            second_next_bid = next_prices[1] if len(next_prices) > 1 else None
+
+    team_limits = {}
     for team in TEAMS:
         spent = int(spent_by_team.get(team, 0))
         sold_count = int(sold_count_by_team.get(team, 0))
@@ -286,6 +305,8 @@ def compute_team_limits(df, player, current_bid, current_team=""):
 
         # Compute highest valid bid reachable within increments (not exceeding max_bid)
         def next_step(val):
+            if last_slot_exists:
+                return val + CONFIG["auction"]["increments"][0]
             if val < base_price_rule * 2:
                 return val + CONFIG["auction"]["increments"][0]
             elif val < base_price_rule * 4:
@@ -334,6 +355,25 @@ def get_next_required_bid(current_bid, base_price, has_leader):
         return None
     if not has_leader:
         return current_bid if current_bid >= base_price else base_price
+    # Last-slot rule: if any team is at max-1 players, use smallest increment
+    try:
+        df = load_players()
+        df_status = df.get("status", pd.Series(dtype=str)).astype(str).str.lower()
+        df_team = df.get("team", pd.Series(dtype=str))
+        sold_count_by_team = (df_status == "sold").groupby(df_team).sum()
+        captain_count_by_team = (df_status == "captain").groupby(df_team).sum()
+        max_players_allowed = CONFIG["teams"].get("max_players", 9)
+        last_slot_exists = False
+        for team in TEAMS:
+            sold_c = int(sold_count_by_team.get(team, 0))
+            cap_c = int(captain_count_by_team.get(team, 0))
+            if sold_c + cap_c == max_players_allowed - 1:
+                last_slot_exists = True
+                break
+        if last_slot_exists:
+            return current_bid + CONFIG["auction"]["increments"][0]
+    except Exception:
+        pass
     for p in get_bid_increments(current_bid):
         if p > current_bid:
             return p

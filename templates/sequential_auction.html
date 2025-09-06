@@ -121,6 +121,7 @@
   <script>
     (function(){
       const INCREMENTS = {{ CONFIG.auction.increments|tojson }};
+      const MAX_PLAYERS = {{ CONFIG.teams.max_players }};
       const BASE_PRICE = {{ current_player.base_price if current_player else 0 }};
       const EXPECTED_ID = {{ current_player.player_id if current_player else 0 }};
       function formatCurrencyShort(amount){
@@ -130,10 +131,11 @@
         if (amount >= 100000){ const l=(amount/100000).toFixed(1).replace(/\.0$/, ''); return l+'L'; }
         return amount.toLocaleString('en-IN');
       }
-      function nextRequiredBid(current, base, hasLeader){
+      function nextRequiredBid(current, base, hasLeader, lastSlot){
         current = parseInt(current||0); base = parseInt(base||0);
         if (!hasLeader) return Math.max(current, base);
-        let step; if (current < base*2) step = INCREMENTS[0]; else if (current < base*4) step = INCREMENTS[1]; else step = INCREMENTS[2];
+        let step; if (lastSlot) { step = INCREMENTS[0]; return current + step; }
+        if (current < base*2) step = INCREMENTS[0]; else if (current < base*4) step = INCREMENTS[1]; else step = INCREMENTS[2];
         return current + step;
       }
       function updateButtons(nextBid, eligibleTeams){
@@ -175,7 +177,8 @@
               toggleCards(a.status);
               const base = (p.base_price || BASE_PRICE);
               if ((a.status||'').toLowerCase() === 'bidding' || (a.status||'').toLowerCase() === 'going'){
-                const nextBid = nextRequiredBid(a.current_bid||0, base, !!a.current_team);
+                const lastSlot = Array.isArray(s.eligible) && s.eligible.some(e => (e.players_with_captain || 0) === (MAX_PLAYERS - 1));
+                const nextBid = nextRequiredBid(a.current_bid||0, base, !!a.current_team, lastSlot);
                 const elig = Array.isArray(s.eligible) ? s.eligible.map(e=>e.team) : [];
                 updateButtons(nextBid, elig);
               } else {
@@ -205,7 +208,7 @@
               if (bidEl && applied) bidEl.textContent = '₹' + formatCurrencyShort(applied);
               if (leaderEl) leaderEl.textContent = team;
               if (statusEl) statusEl.textContent = 'BIDDING';
-              const nr = (data && data.next_required) || nextRequiredBid(applied, ({{ current_player.base_price if current_player else 0 }}), true);
+              const nr = (data && data.next_required) || nextRequiredBid(applied, ({{ current_player.base_price if current_player else 0 }}), true, false);
               updateButtons(nr, []);
             }catch(e){}
           });

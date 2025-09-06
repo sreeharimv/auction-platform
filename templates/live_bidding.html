@@ -144,6 +144,7 @@
     (function(){
       // Mirror live-view: update fields via SSE to keep next bid fresh
       const INCREMENTS = {{ CONFIG.auction.increments|tojson }};
+      const MAX_PLAYERS = {{ CONFIG.teams.max_players }};
       const BASE_PRICE = {{ player.base_price }};
       function formatCurrencyShort(amount){
         if (!amount) return '0';
@@ -157,10 +158,11 @@
         }
         return amount.toLocaleString('en-IN');
       }
-      function nextRequiredBid(current, base, hasLeader){
+      function nextRequiredBid(current, base, hasLeader, lastSlot){
         current = parseInt(current||0); base = parseInt(base||0);
         if (!hasLeader) return Math.max(current, base);
         let step;
+        if (lastSlot) { step = INCREMENTS[0]; return current + step; }
         if (current < base*2) step = INCREMENTS[0];
         else if (current < base*4) step = INCREMENTS[1];
         else step = INCREMENTS[2];
@@ -215,7 +217,8 @@
               // Compute next required and enable buttons only if bidding/going
               const st = (a.status||'').toLowerCase();
               if (st === 'bidding' || st === 'going'){
-                const nextBid = nextRequiredBid(a.current_bid||0, player.base_price||BASE_PRICE, !!a.current_team);
+                const lastSlot = Array.isArray(s.eligible) && s.eligible.some(e => (e.players_with_captain || 0) === (MAX_PLAYERS - 1));
+                const nextBid = nextRequiredBid(a.current_bid||0, player.base_price||BASE_PRICE, !!a.current_team, lastSlot);
                 const elig = Array.isArray(s.eligible) ? s.eligible.map(e=>e.team) : [];
                 updateButtons(nextBid, elig);
                 // Rebuild eligible grid
@@ -274,7 +277,7 @@
               if (bidEl && applied) bidEl.textContent = '₹' + formatCurrencyShort(applied);
               if (leaderEl) leaderEl.textContent = team;
               if (statusEl) statusEl.textContent = 'BIDDING';
-              const nr = (data && data.next_required) || nextRequiredBid(applied, BASE_PRICE, true);
+              const nr = (data && data.next_required) || nextRequiredBid(applied, BASE_PRICE, true, false);
               updateButtons(nr, []);
             }catch(e){}
           });
