@@ -687,10 +687,17 @@ def live_bidding(player_id):
             flash(f"Started bidding for {player['name']} at base price ₹{format_indian_currency(player['base_price'])}", "info")
             
         elif action == "update_bid":
+            allow_custom = request.form.get("allow_custom") == "1"
+            raw_amount = (request.form.get("bid_amount") or "").strip()
             try:
-                new_bid = int(request.form.get("bid_amount"))
-            except (TypeError, ValueError):
-                flash("Select a valid bid amount.", "error")
+                new_bid = parse_currency_input(raw_amount)
+            except Exception:
+                try:
+                    new_bid = int(float(raw_amount))
+                except Exception:
+                    new_bid = 0
+            if not new_bid:
+                flash("Enter a valid bid amount.", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=compute_team_limits(df, player, current_auction.get("current_bid", 0)))
 
             team = request.form.get("team") or ""
@@ -698,48 +705,47 @@ def live_bidding(player_id):
                 flash("Select a team to place bid.", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=compute_team_limits(df, player, current_auction.get("current_bid", 0)))
 
-            # Validate against team limits and increments
+            # Validate against team limits
             limits = compute_team_limits(df, player, current_auction.get("current_bid", 0))
             tl = limits.get(team)
             if not tl:
                 flash("Invalid team selection.", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
-            current_bid_val = current_auction.get("current_bid", 0)
+            current_bid_val = int(current_auction.get("current_bid", 0))
             current_team_val = current_auction.get("current_team", "")
+
+            # Basic constraints: must exceed current bid if there is a leader; else >= base price/current
             if current_team_val:
-                # There is a leading bid; must outbid
                 if new_bid <= current_bid_val:
                     flash("Bid must be higher than current bid.", "error")
                     return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
             else:
-                # First bid can be at base price/current shown
-                if new_bid < current_bid_val:
-                    flash("Bid must be at least the current/base price.", "error")
+                if new_bid < max(player["base_price"], current_bid_val):
+                    flash("Bid must be at least the base/current price.", "error")
                     return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
-            if new_bid > tl["max_bid"]:
-                flash(f"{team} cannot afford ₹{format_indian_currency(new_bid)}. Max allowed: ₹{format_indian_currency(tl['max_bid'])}", "error")
+            if new_bid > int(tl.get("max_bid", 0)):
+                flash(f"{team} cannot afford ₹{format_indian_currency(new_bid)}. Max allowed: ₹{format_indian_currency(tl.get('max_bid',0))}", "error")
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
-            # Server-side increment validation
-            valid_next = [p for p in get_bid_increments(current_bid_val) if p > current_bid_val]
-            # Allow selecting the current/base as first bid if no leading team
-            if not current_team_val and current_bid_val >= player["base_price"]:
-                valid_next.append(current_bid_val)
-            if new_bid not in valid_next:
-                flash("Invalid increment selected.", "error")
-                return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
+            # If not custom, enforce increment steps as before
+            if not allow_custom:
+                valid_next = [p for p in get_bid_increments(current_bid_val) if p > current_bid_val]
+                if not current_team_val and current_bid_val >= player["base_price"]:
+                    valid_next.append(current_bid_val)
+                if new_bid not in valid_next:
+                    flash("Invalid increment selected.", "error")
+                    return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
             # All good – apply bid
-            # Track history for undo
             current_auction.setdefault("history", [])
             current_auction["history"].append({
                 "bid": new_bid,
                 "team": team,
                 "ts": datetime.now().isoformat(),
             })
-            current_auction["current_bid"] = new_bid
+            current_auction["current_bid"] = int(new_bid)
             current_auction["current_team"] = team
             current_auction["status"] = "bidding"
             broadcast_state()

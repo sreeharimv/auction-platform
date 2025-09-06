@@ -109,6 +109,28 @@
     </div>
     {% endif %}
 
+    <!-- Custom Bid (Admin override) -->
+    <div class="card" style="margin-top: 16px;">
+      <h3>Custom Bid (Admin)</h3>
+      <form method="post" action="{{ url_for('live_bidding', player_id=player.player_id) }}" style="display:flex; gap:12px; align-items: center; flex-wrap: wrap;">
+        <input type="hidden" name="action" value="update_bid">
+        <input type="hidden" name="allow_custom" value="1">
+        <label>Team
+          <select name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; min-width: 200px;">
+            <option value="">Select Team</option>
+            {% for team in teams %}
+              <option value="{{ team }}">{{ team }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Amount
+          <input name="bid_amount" placeholder="e.g. 1.05Cr or 65L" style="background:#0b1220;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:8px;min-width:160px;">
+        </label>
+        <button class="btn" type="submit">Update Bid</button>
+        <div style="color:#94a3b8; font-size:12px;">Must be ≥ base/current and ≤ team's max for this player.</div>
+      </form>
+    </div>
+
     <!-- Row 3: Teams who can bid now (admin view) -->
     {% if team_limits %}
       {% set eligible = team_limits.values()|selectattr('can_bid_now')|list %}
