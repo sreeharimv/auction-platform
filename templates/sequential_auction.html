@@ -222,8 +222,6 @@
                 if (roleEl) roleEl.textContent = p.role;
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
-                // Clear any pending updates
-                setTimeout(() => { BASE_PRICE = p.base_price; }, 100);
               }
               const bidEl = document.getElementById('sa-bid');
               const leaderEl = document.getElementById('sa-leader');

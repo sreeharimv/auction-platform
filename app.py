@@ -955,8 +955,10 @@ def next_player():
             sequential_auction["current_index"] = 0
             sequential_auction["player_sequence"] = unsold_players["player_id"].tolist()
             next_player_id = sequential_auction["player_sequence"][0]
+            next_player_row = df[df["player_id"] == next_player_id]
+            next_player_base_price = int(next_player_row.iloc[0]["base_price"]) if not next_player_row.empty else BASE_PRICE
             current_auction["player_id"] = next_player_id
-            current_auction["current_bid"] = BASE_PRICE
+            current_auction["current_bid"] = next_player_base_price
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
             broadcast_state()
@@ -973,8 +975,11 @@ def next_player():
     # Clear any previous announcement and set next player
     current_auction["announcement"] = None
     next_player_id = sequential_auction["player_sequence"][sequential_auction["current_index"]]
+    df = load_players()
+    next_player_row = df[df["player_id"] == next_player_id]
+    next_player_base_price = int(next_player_row.iloc[0]["base_price"]) if not next_player_row.empty else BASE_PRICE
     current_auction["player_id"] = next_player_id
-    current_auction["current_bid"] = BASE_PRICE
+    current_auction["current_bid"] = next_player_base_price
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
     broadcast_state()
