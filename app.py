@@ -948,10 +948,14 @@ def next_player():
     sequential_auction["current_index"] += 1
     
     if sequential_auction["current_index"] >= len(sequential_auction["player_sequence"]):
-        # End of round - if unsold players remain, start another round
+        # End of round - check if any auctionable players remain
         df = load_players()
         unsold_players = df[(df["status"].astype(str).str.lower() == "unsold")]
-        if len(unsold_players) > 0:
+        # Check if all auctionable players (excluding captains) are sold
+        auctionable_players = df[df["status"].astype(str).str.lower() != "captain"]
+        sold_players = auctionable_players[auctionable_players["status"].astype(str).str.lower() == "sold"]
+        
+        if len(unsold_players) > 0 and len(sold_players) < len(auctionable_players):
             sequential_auction["current_index"] = 0
             sequential_auction["player_sequence"] = unsold_players["player_id"].tolist()
             next_player_id = sequential_auction["player_sequence"][0]

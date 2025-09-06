@@ -159,6 +159,7 @@
     <!-- Always-visible control for Next Player when sequential auction is active -->
     <div class="card" style="margin-top: 16px;">
       <button id="sa-next-player" class="btn" style="background: #334155;">Next Player</button>
+      <button id="sa-end-auction" class="btn" style="background: #dc2626; margin-left: 12px;">End Auction</button>
     </div>
 
   </div>
@@ -327,6 +328,18 @@
             try{
               await fetch('{{ url_for('next_player') }}', { method:'POST' });
             }catch(e){}
+          });
+        }
+        const endBtn = document.getElementById('sa-end-auction');
+        if (endBtn){
+          endBtn.addEventListener('click', async (e)=>{
+            e.preventDefault();
+            if (confirm('Are you sure you want to end the auction?')) {
+              try{
+                await fetch('/end-sequential', { method:'POST' });
+                window.location.href = '{{ url_for('auction') }}';
+              }catch(e){}
+            }
           });
         }
       }
