@@ -158,9 +158,7 @@
 
     <!-- Always-visible control for Next Player when sequential auction is active -->
     <div class="card" style="margin-top: 16px;">
-      <form method="post" action="{{ url_for('next_player') }}" style="display: inline;">
-        <button class="btn" name="action" value="next" style="background: #334155;">Next Player</button>
-      </form>
+      <button id="sa-next-player" class="btn" style="background: #334155;">Next Player</button>
     </div>
 
   </div>
@@ -315,6 +313,16 @@
             undoBtn.disabled = true; setTimeout(()=>{undoBtn.disabled=false;}, 600);
             try{
               await fetch('{{ url_for('api_undo') }}', { method:'POST' });
+            }catch(e){}
+          });
+        }
+        const nextBtn = document.getElementById('sa-next-player');
+        if (nextBtn){
+          nextBtn.addEventListener('click', async (e)=>{
+            e.preventDefault();
+            nextBtn.disabled = true; setTimeout(()=>{nextBtn.disabled=false;}, 1000);
+            try{
+              await fetch('{{ url_for('next_player') }}', { method:'POST' });
             }catch(e){}
           });
         }
