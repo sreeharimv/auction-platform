@@ -142,11 +142,7 @@
             try {
               const data = JSON.parse(evt.data);
               if (!data) { return; }
-              if (data.type === 'player_change') {
-                // Player changed - reload page to get new player
-                location.reload();
-                return;
-              }
+              // Remove player_change handling since we're not using it
               if (data.type !== 'state') { return; }
               const s = data.payload || {};
               const root = document.getElementById('lv-root');
@@ -318,6 +314,20 @@
         }
       }
       connect();
+      
+      // Poll for player changes every 2 seconds
+      setInterval(() => {
+        const root = document.getElementById('lv-root');
+        const currentId = root ? root.getAttribute('data-player-id') : '';
+        fetch('/live-version')
+          .then(r => r.json())
+          .then(data => {
+            if (data.current_player_id && String(data.current_player_id) !== currentId) {
+              location.reload();
+            }
+          })
+          .catch(() => {});
+      }, 2000);
     })();
   </script>
 </body>
