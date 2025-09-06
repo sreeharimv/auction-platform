@@ -227,6 +227,13 @@
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
                 CURRENT_PLAYER_ID = p.id;
+                // Update progress (current player position + 1)
+                const progressText = document.querySelector('.card h3 + div');
+                if (progressText) {
+                  const currentPos = {{ progress.current }};
+                  const totalPlayers = {{ progress.total }};
+                  progressText.textContent = `${currentPos} / ${totalPlayers}`;
+                }
               }
               const bidEl = document.getElementById('sa-bid');
               const leaderEl = document.getElementById('sa-leader');
@@ -271,7 +278,15 @@
               }
             } catch(e){}
           };
-          es.onerror = function(){ try{es.close();}catch(e){} setTimeout(connect, 1000); };
+          es.onerror = function(){ 
+            console.log('SSE connection error, reconnecting...');
+            try{es.close();}catch(e){} 
+            setTimeout(connect, 2000); 
+          };
+          // Cleanup on page unload
+          window.addEventListener('beforeunload', function() {
+            try{es.close();}catch(e){}
+          });
         } catch(e){ setTimeout(connect, 1500); }
       }
       // Bind quick actions to fast API

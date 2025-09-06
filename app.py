@@ -132,11 +132,14 @@ def broadcast_state():
         "payload": build_live_payload(),
     })
     with _sse_lock:
+        dead_clients = set()
         for q in list(_sse_clients):
             try:
                 q.put_nowait(message)
             except Exception:
-                pass
+                dead_clients.add(q)
+        # Remove dead clients
+        _sse_clients -= dead_clients
 
 # SSE subscription state
 _sse_lock = threading.Lock()
@@ -934,6 +937,22 @@ def sequential_auction_page():
                          team_limits=team_limits,
                          next_bid=next_bid)
 
+@app.route("/end-sequential", methods=["POST"])
+def end_sequential():
+    # Check admin access
+    if not session.get("is_admin"):
+        return redirect(url_for("admin"))
+    
+    # End sequential auction
+    sequential_auction["active"] = False
+    current_auction["player_id"] = None
+    current_auction["status"] = "waiting"
+    current_auction["announcement"] = None
+    broadcast_state()
+    
+    flash("Sequential auction ended manually.", "info")
+    return redirect(url_for("auction"))
+
 @app.route("/next-player", methods=["POST"])
 def next_player():
     # Check admin access
@@ -978,6 +997,7 @@ def next_player():
     
     # Clear any previous announcement and set next player
     current_auction["announcement"] = None
+    current_auction["history"] = []  # Clear bid history
     next_player_id = sequential_auction["player_sequence"][sequential_auction["current_index"]]
     df = load_players()
     next_player_row = df[df["player_id"] == next_player_id]
