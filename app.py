@@ -428,6 +428,12 @@ def init_db():
 # Initialize database on startup
 init_db()
 
+# Debug database info
+print(f"DEBUG: Using database file: {DB_FILE}")
+print(f"DEBUG: Database file exists: {os.path.exists(DB_FILE)}")
+if os.path.exists(DB_FILE):
+    print(f"DEBUG: Database file size: {os.path.getsize(DB_FILE)} bytes")
+
 # Migrate CSV data to SQLite if CSV exists
 def migrate_csv_to_db():
     csv_file = os.path.join(os.path.dirname(__file__), "players.csv")
@@ -452,11 +458,15 @@ migrate_csv_to_db()
 
 def load_players():
     """Load players from SQLite database as pandas DataFrame"""
+    import time
+    start_time = time.time()
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql_query("SELECT * FROM players ORDER BY player_id", conn)
     conn.close()
     # Replace NaN/None with empty string for display
     df = df.fillna('')
+    end_time = time.time()
+    print(f"DEBUG: load_players() took {end_time - start_time:.3f} seconds, loaded {len(df)} players")
     return df
 
 def save_players(df):
@@ -473,6 +483,10 @@ def update_player_db(player_id, **kwargs):
     conn.execute(f"UPDATE players SET {set_clause} WHERE player_id = ?", values)
     conn.commit()
     conn.close()
+
+@app.route("/health")
+def health():
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 @app.route("/")
 def index():
@@ -504,6 +518,9 @@ def teams():
 
 @app.route("/players")
 def players():
+    import time
+    start_time = time.time()
+    print(f"DEBUG: Starting players route")
     df = load_players()
     sort = request.args.get("sort", "player_id")
     asc = request.args.get("asc", "1") == "1"
@@ -513,6 +530,8 @@ def players():
         except Exception:
             pass
     players = df.to_dict(orient="records")
+    end_time = time.time()
+    print(f"DEBUG: players route took {end_time - start_time:.3f} seconds total")
     return render_template("players.html", players=players, sort=sort, asc=asc)
 
 @app.route("/admin", methods=["GET", "POST"])
