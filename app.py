@@ -170,7 +170,7 @@ def broadcast_live_only():
     message = json.dumps({
         "type": "player_change",
         "version": auction_version,
-        "player_id": current_auction.get("player_id"),
+        "player_id": int(current_auction.get("player_id") or 0),
     })
     with _sse_lock:
         dead_clients = set()
