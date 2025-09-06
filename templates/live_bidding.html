@@ -58,29 +58,7 @@
       {% endif %}
     </div>
 
-    <!-- Team Max Bid Capacity -->
-    <div class="card" style="margin-bottom: 20px;">
-      <h3>Max Bid Each Team Can Make</h3>
-      <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">Only showing teams that can outbid current price.</div>
-      <div class="grid" style="margin-top: 12px;">
-        {% for team, info in team_limits.items() %}
-          {% if info.can_bid_now %}
-          <div class="card" style="padding: 16px;">
-            <div class="label">{{ team }}</div>
-            <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
-              ₹{{ format_currency(info.max_valid_bid) }}
-            </div>
-            <div style="color: #94a3b8; font-size: 12px;">
-              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players_with_captain }}/{{ CONFIG.teams.max_players }}
-            </div>
-            {% if info.near_limit %}
-              <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
-            {% endif %}
-          </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </div>
+    
 
     {% if auction_state.status == "waiting" %}
     <div class="card">
@@ -129,6 +107,36 @@
         <button id="lb-undo" class="btn secondary" style="background:#64748b;">UNDO</button>
       </div>
     </div>
+    {% endif %}
+
+    <!-- Row 3: Teams who can bid now (admin view) -->
+    {% if team_limits %}
+      {% set eligible = team_limits.values()|selectattr('can_bid_now')|list %}
+      <div id="lb-eligible-container" class="card" style="padding: 12px; margin-top:16px;">
+        <h3 style="margin: 0 0 8px;">Teams Who Can Bid Now</h3>
+        {% if eligible|length == 0 %}
+          <div id="lb-eligible-empty" style="color: #94a3b8;">No teams can place the next bid.</div>
+        {% else %}
+        <div id="lb-eligible-grid" class="grid" style="margin-top: 8px;">
+          {% for team, info in team_limits.items() %}
+            {% if info.can_bid_now %}
+            <div class="card" style="padding: 12px;">
+              <div class="label">{{ team }}</div>
+              <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
+                ₹{{ format_currency(info.max_valid_bid) }}
+              </div>
+              <div style="color: #94a3b8; font-size: 12px;">
+                Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players_with_captain }}/{{ CONFIG.teams.max_players }}
+              </div>
+              {% if info.near_limit %}
+                <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
+              {% endif %}
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
     {% endif %}
 
   </div>
@@ -198,6 +206,9 @@
               const bidEl = document.getElementById('lb-bid');
               const leaderEl = document.getElementById('lb-leader');
               const statusEl = document.getElementById('lb-status');
+              const eligibleGrid = document.getElementById('lb-eligible-grid');
+              const eligibleEmpty = document.getElementById('lb-eligible-empty');
+              const eligibleContainer = document.getElementById('lb-eligible-container');
               if (bidEl) bidEl.textContent = '₹' + formatCurrencyShort(a.current_bid || 0);
               if (leaderEl) leaderEl.textContent = a.current_team || 'No bids yet';
               if (statusEl) statusEl.textContent = (a.status || '').toUpperCase();
@@ -207,8 +218,33 @@
                 const nextBid = nextRequiredBid(a.current_bid||0, player.base_price||BASE_PRICE, !!a.current_team);
                 const elig = Array.isArray(s.eligible) ? s.eligible.map(e=>e.team) : [];
                 updateButtons(nextBid, elig);
+                // Rebuild eligible grid
+                if (eligibleContainer) eligibleContainer.style.display = '';
+                if (eligibleGrid || eligibleEmpty){
+                  const list = Array.isArray(s.eligible) ? s.eligible : [];
+                  if (list.length === 0){
+                    if (eligibleGrid) eligibleGrid.innerHTML = '';
+                    if (eligibleEmpty) eligibleEmpty.style.display = '';
+                  } else {
+                    if (eligibleEmpty) eligibleEmpty.style.display = 'none';
+                    if (eligibleGrid){
+                      eligibleGrid.innerHTML = list.map(item => `
+                        <div class=\"card\" style=\"padding: 12px;\">\n\
+                          <div class=\"label\">${item.team}</div>\n\
+                          <div class=\"metric\" style=\"color: ${item.near_limit ? '#f59e0b' : '#10b981'};\">\n\
+                            ₹${formatCurrencyShort(item.max_valid_bid || 0)}\n\
+                          </div>\n\
+                          <div style=\"color: #94a3b8; font-size: 12px;\">\n\
+                            Remaining: ₹${formatCurrencyShort(item.remaining || 0)} • Players: ${item.players_with_captain}/{{ CONFIG.teams.max_players }}\n\
+                          </div>\n\
+                          ${item.near_limit ? '<div style=\"color: #f59e0b; font-size: 12px; margin-top: 4px;\">Only one increment possible</div>' : ''}\n\
+                        </div>`).join('');
+                    }
+                  }
+                }
               } else {
                 updateButtons(a.current_bid||0, []);
+                if (eligibleContainer) eligibleContainer.style.display = 'none';
               }
             }catch(e){ /* ignore */ }
           };
