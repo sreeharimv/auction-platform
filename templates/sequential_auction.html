@@ -167,7 +167,7 @@
       const INCREMENTS = {{ CONFIG.auction.increments|tojson }};
       const MAX_PLAYERS = {{ CONFIG.teams.max_players }};
       const BASE_PRICE = {{ current_player.base_price if current_player else 0 }};
-      const EXPECTED_ID = {{ current_player.player_id if current_player else 0 }};
+      let EXPECTED_ID = {{ current_player.player_id if current_player else 0 }};
       function formatCurrencyShort(amount){
         if (!amount) return '0';
         amount = parseInt(amount);
@@ -222,6 +222,8 @@
                 if (roleEl) roleEl.textContent = p.role;
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
+                // Clear any pending updates
+                setTimeout(() => { BASE_PRICE = p.base_price; }, 100);
               }
               const bidEl = document.getElementById('sa-bid');
               const leaderEl = document.getElementById('sa-leader');
