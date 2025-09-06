@@ -78,9 +78,18 @@ current_auction = {
 # Version counter for public live view; increments on state changes
 auction_version = 0
 
+# Cache for build_live_payload to avoid repeated DB calls
+_payload_cache = {"df": None, "last_update": 0}
+
 def build_live_payload():
     """Build a minimal JSON-serializable payload representing live state."""
-    df = load_players()
+    import time
+    # Use cached data if less than 1 second old
+    now = time.time()
+    if _payload_cache["df"] is None or (now - _payload_cache["last_update"]) > 1:
+        _payload_cache["df"] = load_players()
+        _payload_cache["last_update"] = now
+    df = _payload_cache["df"]
     payload = {
         "ts": datetime.now().isoformat(),
         "auction": {
@@ -1614,6 +1623,8 @@ def api_sold():
         sold_price = int(current_auction.get('current_bid', 0))
         # Persist sale
         update_player_db(player_id, team=sale_team, status='sold', sold_price=sold_price, sold_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        # Clear cache since player data changed
+        _payload_cache["df"] = None
         # Announce and keep SOLD state for viewers
         current_auction['announcement'] = f"SOLD! {player_name} to {sale_team} for ₹{format_indian_currency(sold_price)}"
         current_auction['status'] = 'sold'
