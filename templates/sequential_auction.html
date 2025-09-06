@@ -120,7 +120,7 @@
       <div class="card" style="margin-top: 16px;">
         <h3>Custom Bid (Admin)</h3>
         {% if current_player %}
-        <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display:flex; gap:12px; align-items:center; flex-wrap: wrap;">
+        <form method="post" action="{{ url_for('sequential_auction_page') }}" style="display:flex; gap:12px; align-items:center; flex-wrap: wrap;">
           <input type="hidden" name="action" value="update_bid">
           <input type="hidden" name="allow_custom" value="1">
           <label>Team
