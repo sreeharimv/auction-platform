@@ -32,16 +32,7 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Progress Bar -->
-    <div class="card" style="margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>Auction Progress</h3>
-        <div style="font-size: 18px; font-weight: bold;">{{ progress.current }} / {{ progress.total }}</div>
-      </div>
-      <div style="background: #1e293b; height: 8px; border-radius: 4px; margin-top: 8px;">
-        <div style="background: #10b981; height: 100%; width: {{ (progress.current / progress.total * 100) }}%; border-radius: 4px;"></div>
-      </div>
-    </div>
+
 
     <!-- Teams Who Can Bid Now (moved here under progress) -->
     {% if team_limits %}
@@ -165,7 +156,6 @@
   </div>
   <script>
     (function(){
-      const INCREMENTS = {{ CONFIG.auction.increments|tojson }};
       const MAX_PLAYERS = {{ CONFIG.teams.max_players }};
       const BASE_PRICE = {{ current_player.base_price if current_player else 0 }};
       let EXPECTED_ID = {{ current_player.player_id if current_player else 0 }};
@@ -176,13 +166,6 @@
         if (amount >= 10000000){ const cr=(amount/10000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1'); return cr+'Cr'; }
         if (amount >= 100000){ const l=(amount/100000).toFixed(1).replace(/\.0$/, ''); return l+'L'; }
         return amount.toLocaleString('en-IN');
-      }
-      function nextRequiredBid(current, base, hasLeader, lastSlot){
-        current = parseInt(current||0); base = parseInt(base||0);
-        if (!hasLeader) return Math.max(current, base);
-        let step; if (lastSlot) { step = INCREMENTS[0]; return current + step; }
-        if (current < base*2) step = INCREMENTS[0]; else if (current < base*4) step = INCREMENTS[1]; else step = INCREMENTS[2];
-        return current + step;
       }
       function updateButtons(nextBid, eligibleTeams){
         const grp = document.getElementById('sa-team-buttons');
@@ -227,13 +210,6 @@
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
                 CURRENT_PLAYER_ID = p.id;
-                // Update progress (current player position + 1)
-                const progressText = document.querySelector('.card h3 + div');
-                if (progressText) {
-                  const currentPos = {{ progress.current }};
-                  const totalPlayers = {{ progress.total }};
-                  progressText.textContent = `${currentPos} / ${totalPlayers}`;
-                }
               }
               const bidEl = document.getElementById('sa-bid');
               const leaderEl = document.getElementById('sa-leader');
@@ -244,8 +220,8 @@
               toggleCards(a.status);
               const base = (p.base_price || BASE_PRICE);
               if ((a.status||'').toLowerCase() === 'bidding' || (a.status||'').toLowerCase() === 'going'){
-                const lastSlot = Array.isArray(s.eligible) && s.eligible.some(e => (e.players_with_captain || 0) === (MAX_PLAYERS - 1));
-                const nextBid = nextRequiredBid(a.current_bid||0, base, !!a.current_team, lastSlot);
+                // Use server-calculated next bid from template
+                const nextBid = {{ next_bid if next_bid else 0 }};
                 const elig = Array.isArray(s.eligible) ? s.eligible.map(e=>e.team) : [];
                 updateButtons(nextBid, elig);
                 // Rebuild eligible list under current player
