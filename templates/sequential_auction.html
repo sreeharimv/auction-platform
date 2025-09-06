@@ -186,13 +186,12 @@
       function updateButtons(nextBid, eligibleTeams){
         const grp = document.getElementById('sa-team-buttons');
         if (!grp) return;
-        grp.querySelectorAll('form').forEach((f)=>{
-          const btn = f.querySelector('button.btn');
-          const hidden = f.querySelector('input[name="bid_amount"]');
-          if (hidden) hidden.value = nextBid;
-          const team = btn ? btn.getAttribute('data-team') : null;
+        grp.querySelectorAll('button.sa-quick').forEach((btn)=>{
+          const team = btn.getAttribute('data-team');
           const enabled = team && eligibleTeams.includes(team);
-          if (btn){ btn.disabled = !enabled; btn.style.opacity = enabled ? '' : '0.5'; btn.style.cursor = enabled ? '' : 'not-allowed'; }
+          btn.disabled = !enabled;
+          btn.style.opacity = enabled ? '' : '0.5';
+          btn.style.cursor = enabled ? '' : 'not-allowed';
         });
         const nextLabel = document.getElementById('sa-next'); if (nextLabel) nextLabel.textContent = 'Next: ₹'+formatCurrencyShort(nextBid);
       }
@@ -205,6 +204,9 @@
         else { quick.style.display = 'none'; sold.style.display = 'block'; }
       }
       function connect(){
+        const eligibleContainer = document.getElementById('sa-eligible-container');
+        const eligibleGrid = document.getElementById('sa-eligible-grid');
+        const eligibleEmpty = document.getElementById('sa-eligible-empty');
         try{
           const es = new EventSource('{{ url_for('events') }}');
           es.onmessage = function(evt){
@@ -239,7 +241,7 @@
                 const elig = Array.isArray(s.eligible) ? s.eligible.map(e=>e.team) : [];
                 updateButtons(nextBid, elig);
                 // Rebuild eligible list under current player
-                if (eligibleContainer) eligibleContainer.style.display = '';
+                if (eligibleContainer) eligibleContainer.style.display = 'block';
                 if (eligibleGrid || eligibleEmpty){
                   const list = Array.isArray(s.eligible) ? s.eligible : [];
                   if (list.length === 0){
@@ -264,7 +266,7 @@
                 }
               } else {
                 updateButtons(a.current_bid||0, []);
-                if (eligibleContainer) eligibleContainer.style.display = 'none';
+                if (eligibleContainer) eligibleContainer.style.display = 'block';
               }
             } catch(e){}
           };
