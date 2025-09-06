@@ -124,7 +124,7 @@ def build_live_payload():
 
 def broadcast_state():
     """Increment version and push a JSON state payload to SSE listeners."""
-    global auction_version
+    global auction_version, _sse_clients, _sse_lock
     auction_version += 1
     message = json.dumps({
         "type": "state",
@@ -871,11 +871,12 @@ def start_sequential():
     # Clear any previous announcement and set first player as current
     current_auction["announcement"] = None
     first_player_id = sequential_auction["player_sequence"][0]
+    first_player_row = df[df["player_id"] == first_player_id]
+    first_player_base_price = int(first_player_row.iloc[0]["base_price"]) if not first_player_row.empty else BASE_PRICE
     current_auction["player_id"] = first_player_id
-    current_auction["current_bid"] = BASE_PRICE
+    current_auction["current_bid"] = first_player_base_price
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
-    broadcast_state()
     broadcast_state()
     
     flash(f"Sequential auction started! {len(sequential_auction['player_sequence'])} players in queue.", "success")
