@@ -87,8 +87,11 @@ def build_live_payload():
     # Use cached data if less than 1 second old
     now = time.time()
     if _payload_cache["df"] is None or (now - _payload_cache["last_update"]) > 1:
+        print(f"DEBUG: Loading fresh player data for payload")
         _payload_cache["df"] = load_players()
         _payload_cache["last_update"] = now
+    else:
+        print(f"DEBUG: Using cached player data for payload")
     df = _payload_cache["df"]
     payload = {
         "ts": datetime.now().isoformat(),
