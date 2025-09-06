@@ -141,7 +141,13 @@
           es.onmessage = function(evt) {
             try {
               const data = JSON.parse(evt.data);
-              if (!data || data.type !== 'state') { return; }
+              if (!data) { return; }
+              if (data.type === 'player_change') {
+                // Player changed - reload page to get new player
+                location.reload();
+                return;
+              }
+              if (data.type !== 'state') { return; }
               const s = data.payload || {};
               const root = document.getElementById('lv-root');
               const currentId = root ? root.getAttribute('data-player-id') : '';

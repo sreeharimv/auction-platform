@@ -162,6 +162,26 @@ def broadcast_state():
         # Remove dead clients
         _sse_clients -= dead_clients
 
+def broadcast_live_only():
+    """Increment version but don't build full payload - for next player updates."""
+    global auction_version, _sse_clients, _sse_lock
+    auction_version += 1
+    # Send minimal update for live view only
+    message = json.dumps({
+        "type": "player_change",
+        "version": auction_version,
+        "player_id": current_auction.get("player_id"),
+    })
+    with _sse_lock:
+        dead_clients = set()
+        for q in list(_sse_clients):
+            try:
+                q.put_nowait(message)
+            except Exception:
+                dead_clients.add(q)
+        # Remove dead clients
+        _sse_clients -= dead_clients
+
 # SSE subscription state
 _sse_lock = threading.Lock()
 _sse_clients = set()
@@ -913,8 +933,8 @@ def next_player():
             current_auction["current_bid"] = next_player_base_price
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
-            # Broadcast for live view updates
-            broadcast_state()
+            # Broadcast minimal update for live view only
+            broadcast_live_only()
             flash("New round started for remaining unsold players.", "info")
             return redirect(url_for("sequential_auction_page"))
         # Auction complete
@@ -939,8 +959,8 @@ def next_player():
     current_auction["current_bid"] = next_player_base_price
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
-    # Broadcast for live view updates
-    broadcast_state()
+    # Broadcast minimal update for live view only
+    broadcast_live_only()
     
     end_time = time.time()
     print(f"DEBUG: next_player() completed in {end_time - start_time:.3f} seconds")
