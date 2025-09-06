@@ -84,42 +84,6 @@
     </div></div>
 
   </div>
-  <script>
-    (function() {
-      try {
-        const es = new EventSource('{{ url_for('events') }}');
-        let initialized = false;
-        let lastVersion = Number(sessionStorage.getItem('teams_last_version') || '0');
-        es.onmessage = function(e) {
-          try {
-            const msg = JSON.parse(e.data || '{}');
-            const v = Number(msg && msg.version ? msg.version : 0);
-            if (!initialized) {
-              initialized = true; // ignore the initial state to avoid reload loop
-              if (v) {
-                lastVersion = v;
-                sessionStorage.setItem('teams_last_version', String(v));
-              }
-              return;
-            }
-            if (v && v > lastVersion) {
-              lastVersion = v;
-              sessionStorage.setItem('teams_last_version', String(v));
-              if (msg.payload && msg.payload.announcement && msg.payload.announcement.includes('SOLD!')) {
-                location.reload();
-              }
-            }
-          } catch (_) {
-            // ignore parse errors
-          }
-        };
-        es.onerror = function() {
-          // Let EventSource auto-reconnect; avoid forcing full page reloads
-        };
-      } catch (e) {
-        // no-op
-      }
-    })();
-  </script>
+  <!-- Removed SSE updates - manual refresh only -->
 </body>
 </html>

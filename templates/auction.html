@@ -531,41 +531,6 @@
 
   <form id="defaultSequentialForm" method="post" action="/start-sequential" style="display: none;"></form>
 
-{% if not is_admin %}
-<script>
-  (function() {
-    try {
-      const es = new EventSource('{{ url_for('events') }}');
-      let initialized = false;
-      let lastVersion = Number(sessionStorage.getItem('results_last_version') || '0');
-      es.onmessage = function(e) {
-        try {
-          const msg = JSON.parse(e.data || '{}');
-          const v = Number(msg && msg.version ? msg.version : 0);
-          if (!initialized) {
-            initialized = true;
-            if (v) {
-              lastVersion = v;
-              sessionStorage.setItem('results_last_version', String(v));
-            }
-            return;
-          }
-          if (v && v > lastVersion) {
-            lastVersion = v;
-            sessionStorage.setItem('results_last_version', String(v));
-            if (msg.payload && msg.payload.announcement && msg.payload.announcement.includes('SOLD!')) {
-              location.reload();
-            }
-          }
-        } catch(e) {}
-      };
-      es.onerror = function() { 
-        try { es.close(); } catch(e){} 
-        setTimeout(()=>location.reload(), 5000); 
-      };
-    } catch (e) {}
-  })();
-</script>
-{% endif %}
+<!-- Removed SSE updates - manual refresh only -->
 </body>
 </html>
