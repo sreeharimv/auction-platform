@@ -458,8 +458,12 @@ migrate_csv_to_db()
 
 def load_players():
     """Load players from SQLite database as pandas DataFrame"""
-    import time
+    import time, traceback
     start_time = time.time()
+    # Print caller info
+    stack = traceback.extract_stack()
+    caller = stack[-2]
+    print(f"DEBUG: load_players() called from {caller.filename}:{caller.lineno} in {caller.name}()")
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql_query("SELECT * FROM players ORDER BY player_id", conn)
     conn.close()
