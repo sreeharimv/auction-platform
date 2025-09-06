@@ -43,16 +43,36 @@
       </div>
     </div>
 
-    <!-- Team Budgets -->
-    <div class="grid" style="margin-bottom: 20px;">
-      {% for team, budget in team_budgets.items() %}
-      <div class="card">
-        <div class="label">{{ team }}</div>
-        <div class="metric" style="font-size: 18px;">₹{{ format_currency(budget.remaining) }}</div>
-        <div style="font-size: 12px; color: #94a3b8;">{{ budget.players }}/9 players</div>
+    <!-- Teams Who Can Bid Now (moved here under progress) -->
+    {% if team_limits %}
+    {% set eligible = team_limits.values()|selectattr('can_bid_now')|list %}
+    <div id="sa-eligible-container" class="card" style="padding: 12px; margin-bottom:20px;">
+      <h3 style="margin: 0 0 8px;">Teams Who Can Bid Now</h3>
+      {% if eligible|length == 0 %}
+        <div id="sa-eligible-empty" style="color: #94a3b8;">No teams can place the next bid.</div>
+      {% else %}
+      <div id="sa-eligible-grid" class="grid" style="margin-top: 8px;">
+        {% for team in teams %}
+          {% set info = team_limits.get(team) if team_limits else None %}
+          {% if info and info.can_bid_now %}
+          <div class="card" style="padding: 12px;">
+            <div class="label">{{ team }}</div>
+            <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
+              ₹{{ format_currency(info.max_valid_bid) }}
+            </div>
+            <div style="color: #94a3b8; font-size: 12px;">
+              Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players_with_captain }}/{{ CONFIG.teams.max_players }}
+            </div>
+            {% if info.near_limit %}
+              <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
       </div>
-      {% endfor %}
+      {% endif %}
     </div>
+    {% endif %}
 
     <!-- Current Player -->
     {% if current_player %}
@@ -105,36 +125,7 @@
         </div>
       </div>
 
-      <!-- Teams Who Can Bid Now (admin view) -->
-      {% if team_limits %}
-      {% set eligible = team_limits.values()|selectattr('can_bid_now')|list %}
-      <div id="sa-eligible-container" class="card" style="padding: 12px; margin-top:16px;">
-        <h3 style="margin: 0 0 8px;">Teams Who Can Bid Now</h3>
-        {% if eligible|length == 0 %}
-          <div id="sa-eligible-empty" style="color: #94a3b8;">No teams can place the next bid.</div>
-        {% else %}
-        <div id="sa-eligible-grid" class="grid" style="margin-top: 8px;">
-          {% for team in teams %}
-            {% set info = team_limits.get(team) if team_limits else None %}
-            {% if info and info.can_bid_now %}
-            <div class="card" style="padding: 12px;">
-              <div class="label">{{ team }}</div>
-              <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
-                ₹{{ format_currency(info.max_valid_bid) }}
-              </div>
-              <div style="color: #94a3b8; font-size: 12px;">
-                Remaining: ₹{{ format_currency(info.remaining) }} • Players: {{ info.players_with_captain }}/{{ CONFIG.teams.max_players }}
-              </div>
-              {% if info.near_limit %}
-                <div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>
-              {% endif %}
-            </div>
-            {% endif %}
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-      {% endif %}
+      
       <div id="sa-sold-card" class="card" style="display: {{ 'none' if auction_state.status in ['bidding','going'] else 'block' }};">
         <div class="label">Current player sold</div>
         <div style="color:#94a3b8;">Proceed when ready.</div>
