@@ -213,7 +213,18 @@
               const data = JSON.parse(evt.data);
               if (!data || data.type !== 'state') return;
               const s = data.payload || {}; const a = s.auction || {}; const p = s.player || {};
-              if (EXPECTED_ID && p.id && p.id !== EXPECTED_ID){ location.reload(); return; }
+              // Update player info dynamically when new player arrives
+              if (EXPECTED_ID && p.id && p.id !== EXPECTED_ID) {
+                const img = document.querySelector('img[alt]');
+                const nameEl = document.querySelector('.metric[style*="font-size: 32px"]');
+                const roleEl = nameEl ? nameEl.nextElementSibling : null;
+                const baseEl = document.getElementById('sa-base');
+                if (img) img.src = `/static/players/${p.photo || 'default.png'}?v=${p.id}`;
+                if (nameEl) nameEl.textContent = p.name;
+                if (roleEl) roleEl.textContent = p.role;
+                if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
+                EXPECTED_ID = p.id;
+              }
               const bidEl = document.getElementById('sa-bid');
               const leaderEl = document.getElementById('sa-leader');
               const statusEl = document.getElementById('sa-status');
