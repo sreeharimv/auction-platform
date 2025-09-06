@@ -1,7 +1,7 @@
 player_id,name,age,role,batting_style,bowling_style,base_price,team,status,sold_price,sold_at,photo
 1,Sreekanth,44,Batsman,Left-hand Bat,Right-arm Medium,5000000,,unsold,0,,sreekanthrv.jpg
 5,Appu,,All-Rounder,Right-hand Bat,Right-arm Fast,5000000,,unsold,0,,appu.jpg
-15,Penakkan,40,All-Rounder,Right-hand Bat,Right-arm Fast,5000000,,unsold,0,,
+15,Penakkan,40,All-Rounder,Right-hand Bat,Right-arm Fast,5000000,,unsold,0,,penakkan.jpg
 4,Kannan,,Batsman,Right-hand Bat,,5000000,,unsold,0,,kannan-ramkumar.jpg
 20,Arun Chandran,,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,arun-chandran.jpg
 6,Ashith,,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,ashith.jpg
@@ -11,18 +11,18 @@ player_id,name,age,role,batting_style,bowling_style,base_price,team,status,sold_
 13,Renjith,,All-Rounder,Right-hand Bat,Right-arm Off,5000000,,unsold,0,,renjith.jpg
 8,Hari Sharma,39,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,hari-sharma.jpg
 9,Unnikrishnan,,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,unnikrishnan.jpg
-3,Sidharth,,Batsman,Right-hand Bat,,5000000,,unsold,0,,
+3,Sidharth,,Batsman,Right-hand Bat,,5000000,,unsold,0,,sidharth.jpg
 10,Sabarish,38,Batsman,Right-hand Bat,Right-arm Off,5000000,,unsold,0,,sabarish.jpg
 22,Abhilash,,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,abhilash.jpg
-14,Nandu,38,All-Rounder,Right-hand Bat,Right-arm Off,5000000,,unsold,0,,
+14,Nandu,38,All-Rounder,Right-hand Bat,Right-arm Off,5000000,,unsold,0,,nandu.jpg
 17,Arjun Menon,,Batsman,Right-hand Bat,,5000000,Palace Tuskers,captain,0,,arjun-menon.jpg
 11,Raj Narayanan,,Batsman,Right-hand Bat,,5000000,,unsold,0,,raj-narayanan.jpg
-18,Arun Kasi,40,All-Rounder,Left-hand Bat,Right-arm Medium,5000000,,unsold,0,,
-24,Vedu,,Bowler,Right-hand Bat,Right-arm Fast,5000000,,unsold,0,,
+18,Arun Kasi,40,All-Rounder,Left-hand Bat,Right-arm Medium,5000000,,unsold,0,,unnikuttan.jpg
+24,Vedu,,Bowler,Right-hand Bat,Right-arm Fast,5000000,,unsold,0,,vedu.jpg
 23,Vysakh,,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,vysakh.jpg
 2,Sreehari,39,All-Rounder,Right-hand Bat,Right-arm Off,5000000,,unsold,0,,sreehari.jpg
-21,Ramkumar,38,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,
+21,Ramkumar,38,Bowler,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,ramkumar.jpg
 19,Arjun M,,Batsman,Left-hand Bat,Right-arm Medium,5000000,,unsold,0,,arjun-m.jpg
 25,Ram Manohar,,All-Rounder,Right-hand Bat,Right-arm Medium,5000000,Palace Warriors,captain,0,,ram-manohar.jpg
-26,Kiran,,Batsman,Left-hand Bat,Right-arm Medium,5000000,,unsold,0,,
+26,Kiran,,Batsman,Left-hand Bat,Right-arm Medium,5000000,,unsold,0,,kiran.jpg
 27,Vivek,,All-Rounder,Right-hand Bat,Right-arm Medium,5000000,,unsold,0,,vivek.jpg

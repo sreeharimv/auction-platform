@@ -24,7 +24,7 @@
     <div style="display: flex; justify-content: center; width: 100%; margin-top: 20px;"><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 30px; width: 100%; max-width: 1400px;">
     {% for team_name, team_info in team_data.items() %}
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <h2 style="margin: 0; display:flex; align-items:center; gap:10px;">{{ team_name }}</h2>
           <div style="text-align: right;">
             <div style="font-size: 18px; font-weight: bold;">{{ team_info.count }} {{ 'Player' if team_info.count == 1 else 'Players' }}</div>
@@ -32,6 +32,23 @@
             <div style="color: #94a3b8; font-size: 12px;">₹{{ format_currency(team_info.remaining) }} remaining</div>
           </div>
         </div>
+        
+        {# Captain header: show captain just below team name #}
+        {% set ns = namespace(captain=None) %}
+        {% for p in team_info.players %}
+          {% if (p.status|string).lower() == 'captain' %}
+            {% set ns.captain = p %}
+          {% endif %}
+        {% endfor %}
+        {% if ns.captain %}
+        <div style="display:flex; align-items:center; gap:12px; padding: 10px 12px; border: 1px solid #1f2937; background: #0b1220; border-radius: 10px; margin-bottom: 12px;">
+          <img src="{{ url_for('static', filename='players/' + (ns.captain.photo or 'default.png')) }}?t={{ timestamp() }}" alt="{{ ns.captain.name }}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #334155;" onerror="this.src='{{ url_for('static', filename='players/default.png') }}'">
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-weight: 700; color:#e2e8f0; line-height: 1.1;">{{ ns.captain.name }}</div>
+            <div style="font-size: 12px; color:#94a3b8;">Captain • {{ ns.captain.role or '-' }}</div>
+          </div>
+        </div>
+        {% endif %}
         
         {% if team_info.players %}
         <div class="table-wrap">
@@ -46,18 +63,13 @@
             </thead>
             <tbody>
             {% for player in team_info.players %}
+              {% if (player.status|string).lower() != 'captain' %}
               <tr>
                 <td style="text-align: center; padding: 12px; white-space: nowrap;">{{ player.name|dash_if_empty }}</td>
                 <td style="text-align: center; padding: 12px;">{{ player.role|dash_if_empty }}</td>
-                <td style="text-align: center; padding: 12px;">
-                  {% if player.status == 'captain' %}
-                    <span style="color: #f59e0b;">Captain</span>
-                  {% else %}
-                    ₹{{ format_currency(player.sold_price) if player.sold_price else '-' }}
-                  {% endif %}
-                </td>
-                
+                <td style="text-align: center; padding: 12px;">₹{{ format_currency(player.sold_price) if player.sold_price else '-' }}</td>
               </tr>
+              {% endif %}
             {% endfor %}
             </tbody>
           </table>
