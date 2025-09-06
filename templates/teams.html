@@ -102,12 +102,12 @@
               }
               return;
             }
-            if (v && v > lastVersion && msg.payload && msg.payload.announcement && msg.payload.announcement.includes('SOLD!')) {
-              sessionStorage.setItem('teams_last_version', String(v));
-              location.reload();
-            } else if (v && v > lastVersion) {
+            if (v && v > lastVersion) {
               lastVersion = v;
               sessionStorage.setItem('teams_last_version', String(v));
+              if (msg.payload && msg.payload.announcement && msg.payload.announcement.includes('SOLD!')) {
+                location.reload();
+              }
             }
           } catch (_) {
             // ignore parse errors

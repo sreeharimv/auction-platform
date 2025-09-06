@@ -913,7 +913,8 @@ def next_player():
             current_auction["current_bid"] = next_player_base_price
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
-            # Don't broadcast for next player - only live view needs updates
+            # Broadcast for live view updates
+            broadcast_state()
             flash("New round started for remaining unsold players.", "info")
             return redirect(url_for("sequential_auction_page"))
         # Auction complete
@@ -938,7 +939,8 @@ def next_player():
     current_auction["current_bid"] = next_player_base_price
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
-    # Don't broadcast for next player - only live view needs updates
+    # Broadcast for live view updates
+    broadcast_state()
     
     end_time = time.time()
     print(f"DEBUG: next_player() completed in {end_time - start_time:.3f} seconds")
