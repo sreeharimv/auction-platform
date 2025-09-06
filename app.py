@@ -799,6 +799,9 @@ def start_sequential():
 
 @app.route("/sequential-auction")
 def sequential_auction_page():
+    import time
+    start_time = time.time()
+    print(f"DEBUG: sequential_auction_page() called")
     # Check admin access
     if not session.get("is_admin"):
         return redirect(url_for("admin"))
@@ -843,6 +846,8 @@ def sequential_auction_page():
             bool(current_auction.get("current_team")),
         )
     
+    end_time = time.time()
+    print(f"DEBUG: sequential_auction_page() took {end_time - start_time:.3f} seconds")
     return render_template("sequential_auction.html", 
                          current_player=current_player, 
                          auction_state=current_auction,
@@ -918,6 +923,8 @@ def next_player():
     current_auction["announcement"] = None
     current_auction["history"] = []  # Clear bid history
     current_auction["player_sold"] = False  # Reset sold flag
+    # Clear cache since auction state changed
+    _payload_cache["df"] = None
     next_player_id = sequential_auction["player_sequence"][sequential_auction["current_index"]]
     df = load_players()
     next_player_row = df[df["player_id"] == next_player_id]
