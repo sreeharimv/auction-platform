@@ -855,6 +855,9 @@ def end_sequential():
 
 @app.route("/next-player", methods=["POST"])
 def next_player():
+    import time
+    start_time = time.time()
+    print(f"DEBUG: next_player() called")
     # Check admin access
     if not session.get("is_admin"):
         return redirect(url_for("admin"))
@@ -909,6 +912,8 @@ def next_player():
     current_auction["status"] = "bidding"
     broadcast_state()
     
+    end_time = time.time()
+    print(f"DEBUG: next_player() completed in {end_time - start_time:.3f} seconds")
     flash("Next player loaded!", "info")
     return redirect(url_for("sequential_auction_page"))
 
@@ -1584,6 +1589,8 @@ def api_sold():
         idx = idxs[0]
         # Get sale team - if no current team, need to determine which team to sell to
         sale_team = current_auction.get('current_team') or ''
+        # Get player info first
+        player = df.iloc[idx].to_dict()
         if not sale_team:
             # If no bids placed, we need a team to sell to - use starting team or first eligible team
             starting_team = compute_starting_team()
@@ -1594,8 +1601,6 @@ def api_sold():
                     current_auction['current_bid'] = player.get('base_price', 0)
             else:
                 return jsonify({"ok": False, "error": "No team determined for sale"}), 400
-        # Validate budget
-        player = df.iloc[idx].to_dict()
         limits = compute_team_limits(df, player, current_auction.get('current_bid', 0), current_team=current_auction.get('current_team', ''))
         tl = limits.get(sale_team)
         if not tl or current_auction.get('current_bid', 0) > tl.get('max_bid', 0):
