@@ -125,5 +125,41 @@
       filterPlayers();
     }
   </script>
+  
+  <script>
+    // Refresh players page when a player is sold
+    (function() {
+      try {
+        const es = new EventSource('{{ url_for('events') }}');
+        let initialized = false;
+        let lastVersion = Number(sessionStorage.getItem('players_last_version') || '0');
+        es.onmessage = function(e) {
+          try {
+            const msg = JSON.parse(e.data || '{}');
+            const v = Number(msg && msg.version ? msg.version : 0);
+            if (!initialized) {
+              initialized = true;
+              if (v) {
+                lastVersion = v;
+                sessionStorage.setItem('players_last_version', String(v));
+              }
+              return;
+            }
+            if (v && v > lastVersion && msg.payload && msg.payload.announcement && msg.payload.announcement.includes('SOLD!')) {
+              sessionStorage.setItem('players_last_version', String(v));
+              location.reload();
+            } else if (v && v > lastVersion) {
+              lastVersion = v;
+              sessionStorage.setItem('players_last_version', String(v));
+            }
+          } catch(e) {}
+        };
+        es.onerror = function() { 
+          try { es.close(); } catch(e){} 
+          setTimeout(()=>location.reload(), 5000); 
+        };
+      } catch (e) {}
+    })();
+  </script>
 </body>
 </html>

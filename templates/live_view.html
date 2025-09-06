@@ -141,13 +141,91 @@
           es.onmessage = function(evt) {
             try {
               const data = JSON.parse(evt.data);
-              if (!data || data.type !== 'state') { location.reload(); return; }
+              if (!data || data.type !== 'state') { return; }
               const s = data.payload || {};
               const root = document.getElementById('lv-root');
               const currentId = root ? root.getAttribute('data-player-id') : '';
               const newId = s.player ? String(s.player.id) : '';
               // If a different non-empty player arrives, reload to rebuild UI
-              if ((!currentId && newId) || (currentId && newId && currentId !== newId)) { location.reload(); return; }
+              if ((!currentId && newId) || (currentId && newId && currentId !== newId)) { 
+                if (root) root.setAttribute('data-player-id', newId);
+                // Update player info and reset auction state for new player
+                if (s.player) {
+                  const photoEl = document.getElementById('lv-photo');
+                  const nameEl = document.getElementById('lv-name');
+                  const roleEl = document.getElementById('lv-role');
+                  const baseEl = document.getElementById('lv-base');
+                  const bidEl = document.getElementById('lv-bid');
+                  const leaderEl = document.getElementById('lv-leader');
+                  const statusEl = document.getElementById('lv-status');
+                  const emojiEl = document.getElementById('lv-status-emoji');
+                  
+                  if (photoEl) photoEl.src = `/static/players/${s.player.photo || 'default.png'}?t=${Date.now()}`;
+                  if (nameEl) nameEl.textContent = s.player.name;
+                  if (roleEl) roleEl.textContent = s.player.role;
+                  if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(s.player.base_price);
+                  
+                  // Reset auction state to new player's initial state
+                  const initialBid = s.player.base_price;
+                  if (bidEl) bidEl.textContent = '₹' + formatCurrencyShort(initialBid);
+                  if (leaderEl) leaderEl.textContent = 'No bids yet';
+                  if (statusEl) {
+                    statusEl.textContent = 'BIDDING ';
+                    if (emojiEl) {
+                      statusEl.appendChild(emojiEl);
+                      emojiEl.textContent = '⚡';
+                    }
+                    statusEl.style.color = '#10b981';
+                  }
+                  // Update starting team for new player
+                  const startingWrap = document.getElementById('lv-starting-wrap');
+                  const startingEl = document.getElementById('lv-starting');
+                  if (startingWrap) {
+                    if (s.starting_team) { 
+                      startingWrap.style.display = ''; 
+                      if (startingEl) startingEl.textContent = s.starting_team; 
+                    } else { 
+                      startingWrap.style.display = 'none'; 
+                    }
+                  }
+                  
+                  // Clear announcement and show eligible teams section
+                  const anncRow = document.getElementById('lv-annc-row');
+                  const eligibleContainer = document.getElementById('lv-eligible-container');
+                  const eligibleGrid = document.getElementById('lv-eligible-grid');
+                  const eligibleEmpty = document.getElementById('lv-eligible-empty');
+                  if (anncRow) {
+                    anncRow.style.display = 'none';
+                    anncRow.textContent = '';
+                  }
+                  if (eligibleContainer) eligibleContainer.style.display = '';
+                  
+                  // Rebuild eligible teams for new player
+                  const elig = Array.isArray(s.eligible) ? s.eligible : [];
+                  if (elig.length === 0) {
+                    if (eligibleGrid) eligibleGrid.innerHTML = '';
+                    if (eligibleEmpty) eligibleEmpty.style.display = '';
+                  } else {
+                    if (eligibleEmpty) eligibleEmpty.style.display = 'none';
+                    if (eligibleGrid) {
+                      eligibleGrid.innerHTML = elig.map(item => `
+                        <div class="card" style="padding: 12px;">
+                          <div class="label">${item.team}</div>
+                          <div class="metric" style="color: ${item.near_limit ? '#f59e0b' : '#10b981'};">
+                            ₹${formatCurrencyShort(item.max_valid_bid || 0)}
+                          </div>
+                          <div style="color: #94a3b8; font-size: 12px;">
+                            Remaining: ₹${formatCurrencyShort(item.remaining || 0)} • Players: ${item.players_with_captain}/{{ CONFIG.teams.max_players }}
+                          </div>
+                          ${item.near_limit ? '<div style="color: #f59e0b; font-size: 12px; margin-top: 4px;">Only one increment possible</div>' : ''}
+                        </div>
+                      `).join('');
+                    }
+                  }
+                }
+                // Skip the rest of the update for new player to avoid overwriting reset values
+                return;
+              }
 
               // Announcement banner
               const anncEl = document.getElementById('lv-annc');
@@ -221,7 +299,7 @@
                 }
               }
             } catch (e) {
-              location.reload();
+              console.error('SSE update error:', e);
             }
           };
           es.onerror = function() {

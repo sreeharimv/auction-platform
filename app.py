@@ -93,6 +93,7 @@ def build_live_payload():
         "eligible": [],
         "next_bid": None,
         "announcement": current_auction.get("announcement"),
+        "player_sold": current_auction.get("player_sold", False),
     }
     if current_auction.get("player_id"):
         row = df[df["player_id"] == current_auction["player_id"]]
@@ -461,7 +462,7 @@ def save_players(df):
     df.to_sql('players', conn, if_exists='replace', index=False)
     conn.close()
 
-def update_player(player_id, **kwargs):
+def update_player_db(player_id, **kwargs):
     """Update specific player fields - much faster than full save"""
     conn = sqlite3.connect(DB_FILE)
     set_clause = ', '.join([f"{k} = ?" for k in kwargs.keys()])
@@ -594,9 +595,10 @@ def auction():
                     )
                 else:
                     player_name = df.at[i, 'name']  # Get name before update
-                    update_player(pid, team=team, status="sold", sold_price=sold_price, sold_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    update_player_db(pid, team=team, status="sold", sold_price=sold_price, sold_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                     # Set announcement for public live view and broadcast
                     current_auction["announcement"] = f"SOLD! {player_name} to {team} for ₹{format_indian_currency(sold_price)}"
+                    current_auction["player_sold"] = True
                     broadcast_state()
                     flash(f"Sold player #{pid} to {team} for ₹{format_indian_currency(sold_price)}.", "success")
 
@@ -606,7 +608,7 @@ def auction():
                 flash("Player not found.", "error")
                 return redirect(url_for("auction"))
             i = idx[0]
-            update_player(pid, status="unsold", team="", sold_price=0, sold_at="")
+            update_player_db(pid, status="unsold", team="", sold_price=0, sold_at="")
             broadcast_state()
             flash(f"Reverted sale for player #{pid}.", "info")
 
@@ -874,6 +876,7 @@ def next_player():
     # Clear any previous announcement and set next player
     current_auction["announcement"] = None
     current_auction["history"] = []  # Clear bid history
+    current_auction["player_sold"] = False  # Reset sold flag
     next_player_id = sequential_auction["player_sequence"][sequential_auction["current_index"]]
     df = load_players()
     next_player_row = df[df["player_id"] == next_player_id]
@@ -949,7 +952,7 @@ def set_captain():
     else:
         i = idx[0]
         player_name = df.at[i, "name"]
-        update_player(player_id, team=team, status="captain", sold_price=0, sold_at="")
+        update_player_db(player_id, team=team, status="captain", sold_price=0, sold_at="")
         broadcast_state()
         flash(f"Set {player_name} as captain of {team}", "success")
     
@@ -968,7 +971,7 @@ def reset_player(player_id):
     else:
         i = idx[0]
         player_name = df.at[i, "name"]
-        update_player(player_id, status="unsold", team="", sold_price=0, sold_at="")
+        update_player_db(player_id, status="unsold", team="", sold_price=0, sold_at="")
         
         # Reset live auction if this player was being auctioned
         if current_auction["player_id"] == player_id:
@@ -1091,7 +1094,7 @@ def add_player():
     return redirect(url_for("player_management"))
 
 @app.route("/update-player", methods=["POST"])
-def update_player():
+def update_player_route():
     # Check admin access
     if not session.get("is_admin"):
         return redirect(url_for("admin"))
@@ -1107,7 +1110,7 @@ def update_player():
         if field == 'base_price':
             value = int(value)
         # Use direct database update instead of DataFrame
-        update_player(player_id, **{field: value})
+        update_player_db(player_id, **{field: value})
         flash(f"Updated {field} for player ID {player_id}", "success")
     
     return redirect(url_for("player_management"))
@@ -1246,7 +1249,7 @@ def upload_player_photo():
         idx = df.index[df['player_id'] == int(player_id)]
         if len(idx) > 0:
             # Use direct database update instead of DataFrame
-            update_player(int(player_id), photo=filename)
+            update_player_db(int(player_id), photo=filename)
         
         return jsonify({"success": True, "timestamp": int(time.time())})
     except Exception as e:
@@ -1549,6 +1552,7 @@ def api_sold():
     try:
         data = request.get_json(silent=True) or {}
         player_id = int(data.get('player_id') or current_auction.get('player_id') or 0)
+        print(f"DEBUG SOLD: player_id={player_id}, current_auction={current_auction}")
         if not player_id:
             return jsonify({"ok": False, "error": "No active player"}), 400
         df = load_players()
@@ -1556,10 +1560,18 @@ def api_sold():
         if len(idxs) == 0:
             return jsonify({"ok": False, "error": "Player not found"}), 404
         idx = idxs[0]
-        # Require a leading team
+        # Get sale team - if no current team, need to determine which team to sell to
         sale_team = current_auction.get('current_team') or ''
         if not sale_team:
-            return jsonify({"ok": False, "error": "No leading team to mark SOLD"}), 400
+            # If no bids placed, we need a team to sell to - use starting team or first eligible team
+            starting_team = compute_starting_team()
+            if starting_team:
+                sale_team = starting_team
+                # Set current bid to base price if not set
+                if current_auction.get('current_bid', 0) == 0:
+                    current_auction['current_bid'] = player.get('base_price', 0)
+            else:
+                return jsonify({"ok": False, "error": "No team determined for sale"}), 400
         # Validate budget
         player = df.iloc[idx].to_dict()
         limits = compute_team_limits(df, player, current_auction.get('current_bid', 0), current_team=current_auction.get('current_team', ''))
@@ -1570,13 +1582,17 @@ def api_sold():
         player_name = player['name']
         sold_price = int(current_auction.get('current_bid', 0))
         # Persist sale
-        update_player(player_id, team=sale_team, status='sold', sold_price=sold_price, sold_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        update_player_db(player_id, team=sale_team, status='sold', sold_price=sold_price, sold_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         # Announce and keep SOLD state for viewers
         current_auction['announcement'] = f"SOLD! {player_name} to {sale_team} for ₹{format_indian_currency(sold_price)}"
         current_auction['status'] = 'sold'
+        current_auction['player_sold'] = True
         broadcast_state()
         return jsonify({"ok": True})
     except Exception as e:
+        print(f"ERROR in api_sold: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route('/api/undo', methods=['POST'])
