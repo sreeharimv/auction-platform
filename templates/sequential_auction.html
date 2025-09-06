@@ -265,7 +265,7 @@
                   }
                 }
               } else {
-                updateButtons(a.current_bid||0, []);
+                // Don't update buttons here - let SSE handle it
                 if (eligibleContainer) eligibleContainer.style.display = 'block';
               }
             } catch(e){}
@@ -292,8 +292,7 @@
               if (bidEl && applied) bidEl.textContent = '₹' + formatCurrencyShort(applied);
               if (leaderEl) leaderEl.textContent = team;
               if (statusEl) statusEl.textContent = 'BIDDING';
-              const nr = (data && data.next_required) || nextRequiredBid(applied, ({{ current_player.base_price if current_player else 0 }}), true, false);
-              updateButtons(nr, []);
+              // Don't update buttons here - let SSE handle it
             }catch(e){}
           });
         });
@@ -306,7 +305,7 @@
               await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: CURRENT_PLAYER_ID }) });
               const statusEl = document.getElementById('sa-status');
               if (statusEl) statusEl.textContent = 'SOLD';
-              updateButtons(0, []);
+              // Don't update buttons here - let SSE handle it
             }catch(e){}
           });
         }
