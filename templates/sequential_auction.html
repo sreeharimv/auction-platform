@@ -213,7 +213,7 @@
               const s = data.payload || {}; const a = s.auction || {}; const p = s.player || {};
               // Update player info dynamically when new player arrives
               if (EXPECTED_ID && p.id && p.id !== EXPECTED_ID) {
-                const img = document.querySelector('img[style*="width: 150px"]');
+                const img = document.querySelector('img[style*="border-radius: 50%"]');
                 const nameEl = document.querySelector('.metric[style*="font-size: 32px"]');
                 const roleEl = nameEl ? nameEl.nextElementSibling : null;
                 const baseEl = document.getElementById('sa-base');
