@@ -43,9 +43,8 @@
         <div id="sa-eligible-empty" style="color: #94a3b8;">No teams can place the next bid.</div>
       {% else %}
       <div id="sa-eligible-grid" class="grid" style="margin-top: 8px;">
-        {% for team in teams %}
-          {% set info = team_limits.get(team) if team_limits else None %}
-          {% if info and info.can_bid_now %}
+        {% for team, info in team_limits.items() %}
+          {% if info.can_bid_now %}
           <div class="card" style="padding: 12px;">
             <div class="label">{{ team }}</div>
             <div class="metric" style="color: {{ '#f59e0b' if info.near_limit else '#10b981' }};">
