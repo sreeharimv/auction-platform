@@ -168,6 +168,7 @@
       const MAX_PLAYERS = {{ CONFIG.teams.max_players }};
       const BASE_PRICE = {{ current_player.base_price if current_player else 0 }};
       let EXPECTED_ID = {{ current_player.player_id if current_player else 0 }};
+      let CURRENT_PLAYER_ID = EXPECTED_ID;
       function formatCurrencyShort(amount){
         if (!amount) return '0';
         amount = parseInt(amount);
@@ -222,6 +223,7 @@
                 if (roleEl) roleEl.textContent = p.role;
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
+                CURRENT_PLAYER_ID = p.id;
               }
               const bidEl = document.getElementById('sa-bid');
               const leaderEl = document.getElementById('sa-leader');
@@ -279,7 +281,7 @@
             btn.disabled = true; setTimeout(()=>{btn.disabled=false;}, 600);
             const team = btn.getAttribute('data-team');
             try{
-              const resp = await fetch('{{ url_for('api_bid') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ current_player.player_id if current_player else 0 }}, team }) });
+              const resp = await fetch('{{ url_for('api_bid') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: CURRENT_PLAYER_ID, team }) });
               const data = await resp.json().catch(()=>({}));
               const applied = (data && (data.applied_bid || data.next_bid)) || 0;
               const bidEl = document.getElementById('sa-bid');
@@ -299,7 +301,7 @@
             e.preventDefault();
             soldBtn.disabled = true; setTimeout(()=>{soldBtn.disabled=false;}, 800);
             try{ 
-              await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: {{ current_player.player_id if current_player else 0 }} }) });
+              await fetch('{{ url_for('api_sold') }}', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ player_id: CURRENT_PLAYER_ID }) });
               const statusEl = document.getElementById('sa-status');
               if (statusEl) statusEl.textContent = 'SOLD';
               updateButtons(0, []);
