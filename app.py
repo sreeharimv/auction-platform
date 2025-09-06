@@ -583,7 +583,7 @@ def admin():
     
     # Simple password check
     if request.method == "POST" and "password" in request.form:
-        if request.form.get("password") == "admin123":
+        if request.form.get("password") == "p@l@cepl@uction@)@%":
             session["is_admin"] = True
             return redirect(url_for("auction"))
         else:
