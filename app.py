@@ -515,6 +515,9 @@ def index():
 
 @app.route("/teams")
 def teams():
+    import time
+    start_time = time.time()
+    print(f"DEBUG: teams() route called")
     df = load_players()
     
     team_data = {}
@@ -530,6 +533,8 @@ def teams():
             "remaining": TEAM_BUDGET - int(spent)
         }
     
+    end_time = time.time()
+    print(f"DEBUG: teams() route took {end_time - start_time:.3f} seconds")
     return render_template("teams.html", team_data=team_data, total_budget=TEAM_BUDGET)
 
 @app.route("/players")
@@ -908,7 +913,7 @@ def next_player():
             current_auction["current_bid"] = next_player_base_price
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
-            broadcast_state()
+            # Don't broadcast for next player - only live view needs updates
             flash("New round started for remaining unsold players.", "info")
             return redirect(url_for("sequential_auction_page"))
         # Auction complete
@@ -933,7 +938,7 @@ def next_player():
     current_auction["current_bid"] = next_player_base_price
     current_auction["current_team"] = ""
     current_auction["status"] = "bidding"
-    broadcast_state()
+    # Don't broadcast for next player - only live view needs updates
     
     end_time = time.time()
     print(f"DEBUG: next_player() completed in {end_time - start_time:.3f} seconds")
