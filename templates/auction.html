@@ -53,7 +53,7 @@
         <div style="color:#94a3b8;">Leader: {{ auction_state.current_team or '—' }} • Status: {{ auction_state.status|upper }}</div>
       </div>
       <div>
-        <a class="btn secondary" href="{{ url_for('live_bidding', player_id=current_player.player_id) }}">Open Live Bidding</a>
+        <a class="btn secondary" href="{{ url_for('live_view') }}">Open Live View</a>
       </div>
     </div>
     {% if team_limits and next_bid %}
@@ -62,19 +62,13 @@
       <div style="display:flex; gap:8px; flex-wrap: wrap;">
         {% for team in teams %}
           {% set tl = team_limits.get(team) %}
-          <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display:inline;">
-            <input type="hidden" name="team" value="{{ team }}">
-            <input type="hidden" name="bid_amount" value="{{ next_bid }}">
-            <button class="btn" name="action" value="update_bid" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
-          </form>
+          <button class="btn" onclick="placeBid('{{ team }}', {{ next_bid }})" {% if not tl or not tl.can_bid_now %}disabled style="opacity:0.5; cursor:not-allowed;"{% endif %}>{{ team }}</button>
         {% endfor %}
       </div>
     </div>
     {% endif %}
     <div style="display:flex; gap:12px; margin-top:12px;">
-      <form method="post" action="{{ url_for('live_bidding', player_id=current_player.player_id) }}" style="display:inline;">
-        <button class="btn" name="action" value="sold" style="background:#10b981;">SOLD!</button>
-      </form>
+      <button class="btn" onclick="markSold()" style="background:#10b981;">SOLD!</button>
       <form method="post" action="{{ url_for('next_player') }}" style="display:inline;">
         <button class="btn" name="action" value="next" style="background:#334155;">Next Player</button>
       </form>
@@ -489,6 +483,28 @@
     }
   </script>
   <script>
+    function placeBid(team, amount) {
+      fetch('/api/bid', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({team: team, bid_amount: amount})
+      }).then(r => r.json()).then(data => {
+        if (!data.ok) alert('Error: ' + data.error);
+        else location.reload();
+      });
+    }
+    
+    function markSold() {
+      fetch('/api/sold', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({})
+      }).then(r => r.json()).then(data => {
+        if (!data.ok) alert('Error: ' + data.error);
+        else location.reload();
+      });
+    }
+    
     // JS currency formatting mirroring backend rules
     function formatCurrencyShort(amount) {
       if (amount >= 10000000) {
