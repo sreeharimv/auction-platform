@@ -236,10 +236,9 @@ def dash_if_empty(value):
 
 # Helper to compute per-team max bid capacity for a given player and current bid
 def compute_team_limits(df, player, current_bid, current_team=""):
-    config = load_config()
-    team_budget = config["teams"]["budget"]
-    base_price_rule = config["auction"]["base_price"]
-    max_players_allowed = config["teams"].get("max_players", 9)
+    team_budget = CONFIG["teams"]["budget"]
+    base_price_rule = CONFIG["auction"]["base_price"]
+    max_players_allowed = CONFIG["teams"].get("max_players", 9)
 
     # Determine next required bids relative to current auction state
     effective_current = current_bid or 0
@@ -255,11 +254,17 @@ def compute_team_limits(df, player, current_bid, current_team=""):
         second_next_bid = next_prices[1] if len(next_prices) > 1 else None
 
     team_limits = {}
+    # Precompute aggregates
+    df_status = df.get("status", pd.Series(dtype=str)).astype(str).str.lower()
+    df_team = df.get("team", pd.Series(dtype=str))
+    sold_prices = pd.to_numeric(df.get("sold_price", pd.Series(dtype=float)), errors="coerce").fillna(0)
+    spent_by_team = sold_prices.groupby(df_team).sum()
+    sold_count_by_team = (df_status == "sold").groupby(df_team).sum()
+    captain_count_by_team = (df_status == "captain").groupby(df_team).sum()
     for team in TEAMS:
-        team_mask = (df["team"] == team)
-        spent = pd.to_numeric(df[team_mask]["sold_price"], errors="coerce").fillna(0).sum()
-        sold_count = len(df[team_mask & (df["status"].str.lower() == "sold")])
-        captain_count = len(df[team_mask & (df["status"].str.lower() == "captain")])
+        spent = int(spent_by_team.get(team, 0))
+        sold_count = int(sold_count_by_team.get(team, 0))
+        captain_count = int(captain_count_by_team.get(team, 0))
 
         remaining = int(team_budget - int(spent))
 
@@ -282,11 +287,11 @@ def compute_team_limits(df, player, current_bid, current_team=""):
         # Compute highest valid bid reachable within increments (not exceeding max_bid)
         def next_step(val):
             if val < base_price_rule * 2:
-                return val + config["auction"]["increments"][0]
+                return val + CONFIG["auction"]["increments"][0]
             elif val < base_price_rule * 4:
-                return val + config["auction"]["increments"][1]
+                return val + CONFIG["auction"]["increments"][1]
             else:
-                return val + config["auction"]["increments"][2]
+                return val + CONFIG["auction"]["increments"][2]
 
         # Starting point: first required bid (min_next_bid). If no leading team and current at base, this is base.
         highest_valid = 0
@@ -345,9 +350,19 @@ def compute_starting_team():
     return None
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "players.csv")
+# In-memory cache for players.csv
+_players_cache_df = None
+_players_cache_mtime = 0.0
 
 def load_players():
-    df = pd.read_csv(DATA_FILE)
+    global _players_cache_df, _players_cache_mtime
+    try:
+        mtime = os.path.getmtime(DATA_FILE)
+    except FileNotFoundError:
+        mtime = 0.0
+    if _players_cache_df is not None and mtime == _players_cache_mtime:
+        return _players_cache_df.copy()
+    df = pd.read_csv(DATA_FILE) if os.path.exists(DATA_FILE) else pd.DataFrame()
     modified = False
     # Normalize expected columns / add if missing
     for col in ["team", "status", "sold_price", "sold_at", "photo"]:
@@ -365,6 +380,9 @@ def load_players():
     # Only write back if we actually added missing columns
     if modified:
         save_players(df)
+        return _players_cache_df.copy()
+    _players_cache_df = df.copy()
+    _players_cache_mtime = mtime
     return df
 
 def save_players(df):
@@ -376,6 +394,12 @@ def save_players(df):
     df = df[columns_order]
     df.to_csv(DATA_FILE, index=False)
     print(f"DEBUG: Saved players to {DATA_FILE}, file exists: {os.path.exists(DATA_FILE)}")
+    global _players_cache_df, _players_cache_mtime
+    _players_cache_df = df.copy()
+    try:
+        _players_cache_mtime = os.path.getmtime(DATA_FILE)
+    except FileNotFoundError:
+        _players_cache_mtime = 0.0
 
 @app.route("/")
 def index():
@@ -618,6 +642,7 @@ def live_bidding(player_id):
             current_auction["current_bid"] = player["base_price"]
             current_auction["current_team"] = ""
             current_auction["status"] = "bidding"
+            current_auction["history"] = []
             broadcast_state()
             flash(f"Started bidding for {player['name']} at base price ₹{format_indian_currency(player['base_price'])}", "info")
             
@@ -667,6 +692,13 @@ def live_bidding(player_id):
                 return render_template("live_bidding.html", player=player, auction_state=current_auction, teams=TEAMS, team_limits=limits)
 
             # All good – apply bid
+            # Track history for undo
+            current_auction.setdefault("history", [])
+            current_auction["history"].append({
+                "bid": new_bid,
+                "team": team,
+                "ts": datetime.now().isoformat(),
+            })
             current_auction["current_bid"] = new_bid
             current_auction["current_team"] = team
             current_auction["status"] = "bidding"
@@ -1558,7 +1590,13 @@ def api_bid():
         tl = limits.get(team)
         if not tl or not tl.get('can_bid_now'):
             return jsonify({"ok": False, "error": "Team not eligible for next bid"}), 400
-        # Apply bid
+        # Apply bid (append to history for undo)
+        current_auction.setdefault('history', [])
+        current_auction['history'].append({
+            'bid': next_bid,
+            'team': team,
+            'ts': datetime.now().isoformat(),
+        })
         current_auction['player_id'] = player_id
         current_auction['current_bid'] = next_bid
         current_auction['current_team'] = team
@@ -1605,6 +1643,42 @@ def api_sold():
         current_auction['status'] = 'sold'
         broadcast_state()
         return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route('/api/undo', methods=['POST'])
+def api_undo():
+    if not session.get("is_admin"):
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    try:
+        player_id = current_auction.get('player_id')
+        if not player_id:
+            return jsonify({"ok": False, "error": "No active player"}), 400
+        df = load_players()
+        row = df[df['player_id'] == player_id]
+        if row.empty:
+            return jsonify({"ok": False, "error": "Player not found"}), 404
+        base_price = int(row.iloc[0].get('base_price') or 0)
+        hist = current_auction.get('history') or []
+        if not hist:
+            # Reset to base with no leader
+            current_auction['current_bid'] = base_price
+            current_auction['current_team'] = ''
+            current_auction['status'] = 'bidding'
+            broadcast_state()
+            return jsonify({"ok": True, "current_bid": base_price, "leader": ""})
+        # Pop last bid
+        hist.pop()
+        if hist:
+            last = hist[-1]
+            current_auction['current_bid'] = int(last.get('bid') or base_price)
+            current_auction['current_team'] = last.get('team') or ''
+        else:
+            current_auction['current_bid'] = base_price
+            current_auction['current_team'] = ''
+        current_auction['status'] = 'bidding'
+        broadcast_state()
+        return jsonify({"ok": True, "current_bid": current_auction['current_bid'], "leader": current_auction['current_team']})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

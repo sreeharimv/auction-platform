@@ -126,6 +126,7 @@
 
       <div style="display: flex; gap: 12px; margin-top: 16px;">
         <button id="lb-sold" class="btn" style="background: #10b981; font-size: 16px; padding: 12px 24px;">SOLD!</button>
+        <button id="lb-undo" class="btn secondary" style="background:#64748b;">UNDO</button>
       </div>
     </div>
     {% endif %}
@@ -253,6 +254,16 @@
               const statusEl = document.getElementById('lb-status');
               if (statusEl) statusEl.textContent = 'SOLD';
               updateButtons(0, []);
+            }catch(e){}
+          });
+        }
+        const undoBtn = document.getElementById('lb-undo');
+        if (undoBtn){
+          undoBtn.addEventListener('click', async (e)=>{
+            e.preventDefault();
+            undoBtn.disabled = true; setTimeout(()=>{undoBtn.disabled=false;}, 600);
+            try{
+              await fetch('{{ url_for('api_undo') }}', { method:'POST' });
             }catch(e){}
           });
         }
