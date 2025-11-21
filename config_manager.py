@@ -381,8 +381,8 @@ class PasswordManager:
             "Please set ADMIN_PASSWORD_HASH in .env file for production!"
         )
         
-        # Default hash for "admin123"
-        return "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIvApKSRCy"
+        # Default hash for "admin123" - generated with bcrypt.hashpw(b'admin123', bcrypt.gensalt(rounds=12))
+        return "$2b$12$dVlj4hIxyz0k3stpOA6fluDdVznyqsOtGKqfVppASDMXKQ92LTkge"
 
 
 class EnvironmentManager:
