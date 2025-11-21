@@ -10,9 +10,18 @@ from PIL import Image, ImageDraw, ImageFont
 import threading
 import queue
 import sqlite3
+from config_manager import ConfigManager, PasswordManager, EnvironmentManager, AuditLogger
 
 app = Flask(__name__)
-app.secret_key = "change-me"
+
+# Initialize configuration managers
+config_manager = ConfigManager()
+password_manager = PasswordManager()
+env_manager = EnvironmentManager()
+audit_logger = AuditLogger()
+
+# Set Flask secret key from environment
+app.secret_key = env_manager.get_secret_key()
 
 # Pillow resampling compatibility (handles Pillow<9.1 without Image.Resampling)
 try:
@@ -20,24 +29,12 @@ try:
 except Exception:
     RESAMPLE_LANCZOS = getattr(Image, "LANCZOS", getattr(Image, "ANTIALIAS", Image.BICUBIC))
 
-# Load configuration
+# Load configuration using ConfigManager
 def load_config():
-    config_path = os.path.join(os.path.dirname(__file__), "config.json")
-    try:
-        with open(config_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        # Return default config if file doesn't exist
-        return {
-            "tournament": {"name": "Palace Premier League", "logo": "logo.png"},
-            "teams": {"count": 3, "names": ["Palace Tuskers", "Palace Titans", "Palace Warriors"], "budget": 25000000, "min_players": 8, "max_players": 9},
-            "auction": {"base_price": 5000000, "currency": "₹", "increments": [1000000, 2500000, 5000000]}
-        }
+    return config_manager.load_config()
 
 def save_config(config):
-    config_path = os.path.join(os.path.dirname(__file__), "config.json")
-    with open(config_path, 'w') as f:
-        json.dump(config, f, indent=2)
+    return config_manager.save_config(config)
 
 def parse_currency_input(value):
     """Convert formatted currency input (50L, 2.5Cr) to actual number"""
@@ -581,9 +578,12 @@ def admin():
     if session.get("is_admin"):
         return redirect(url_for("auction"))
     
-    # Simple password check
+    # Password check using bcrypt
     if request.method == "POST" and "password" in request.form:
-        if request.form.get("password") == "admin123":
+        password = request.form.get("password")
+        password_hash = password_manager.get_admin_password_hash()
+        
+        if password_manager.verify_password(password, password_hash):
             session["is_admin"] = True
             return redirect(url_for("auction"))
         else:
@@ -1341,6 +1341,72 @@ def tournament_settings():
     config = load_config()
     return render_template("tournament_settings.html", config=config)
 
+@app.route("/change-admin-password", methods=["POST"])
+def change_admin_password():
+    """Change admin password with verification"""
+    if not session.get("is_admin"):
+        return redirect(url_for("admin"))
+    
+    current_password = request.form.get("current_password")
+    new_password = request.form.get("new_password")
+    confirm_password = request.form.get("confirm_password")
+    
+    # Validate inputs
+    if not all([current_password, new_password, confirm_password]):
+        flash("All password fields are required", "error")
+        return redirect(url_for("tournament_settings"))
+    
+    # Check new password length
+    if len(new_password) < 8:
+        flash("New password must be at least 8 characters", "error")
+        return redirect(url_for("tournament_settings"))
+    
+    # Check passwords match
+    if new_password != confirm_password:
+        flash("New passwords do not match", "error")
+        return redirect(url_for("tournament_settings"))
+    
+    # Verify current password
+    current_hash = password_manager.get_admin_password_hash()
+    if not password_manager.verify_password(current_password, current_hash):
+        flash("Current password is incorrect", "error")
+        return redirect(url_for("tournament_settings"))
+    
+    # Hash and save new password
+    new_hash = password_manager.hash_password(new_password)
+    
+    # Update .env file
+    env_path = ".env"
+    env_lines = []
+    password_updated = False
+    
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                if line.startswith("ADMIN_PASSWORD_HASH="):
+                    env_lines.append(f"ADMIN_PASSWORD_HASH={new_hash}\n")
+                    password_updated = True
+                else:
+                    env_lines.append(line)
+    
+    if not password_updated:
+        env_lines.append(f"ADMIN_PASSWORD_HASH={new_hash}\n")
+    
+    with open(env_path, 'w') as f:
+        f.writelines(env_lines)
+    
+    # Log the change
+    audit_logger.log_change(
+        "admin_password",
+        "***",  # Don't log actual passwords
+        "***",
+        session.get("session_id", "admin")
+    )
+    
+    flash("Password changed successfully! Please log in again with your new password.", "success")
+    session.clear()  # Force re-login
+    return redirect(url_for("admin"))
+
 @app.route("/update-tournament-info", methods=["POST"])
 def update_tournament_info():
     if not session.get("is_admin"):
@@ -1497,6 +1563,10 @@ def export_config():
     
     config = load_config()
     
+    # Generate timestamped filename
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"config_export_{timestamp}.json"
+    
     # Create JSON in memory
     output = io.StringIO()
     json.dump(config, output, indent=2)
@@ -1507,7 +1577,7 @@ def export_config():
     json_bytes.write(output.getvalue().encode('utf-8'))
     json_bytes.seek(0)
     
-    return send_file(json_bytes, mimetype='application/json', as_attachment=True, download_name='tournament_config.json')
+    return send_file(json_bytes, mimetype='application/json', as_attachment=True, download_name=filename)
 
 # Removed player-card and team-card endpoints as per requirements
 
@@ -1577,8 +1647,20 @@ def import_config():
         return redirect(url_for("tournament_settings"))
     
     try:
+        # Load and parse JSON
         config = json.load(file)
-        save_config(config)
+        
+        # Validate configuration
+        is_valid, errors = config_manager.validate_config(config)
+        if not is_valid:
+            error_msg = "Configuration validation failed:<br>" + "<br>".join(errors)
+            flash(error_msg, "error")
+            return redirect(url_for("tournament_settings"))
+        
+        # Save configuration (will create backup automatically)
+        if not save_config(config):
+            flash("Failed to save configuration", "error")
+            return redirect(url_for("tournament_settings"))
         
         # Update global variables
         global CONFIG, TEAMS, TEAM_BUDGET, BASE_PRICE
@@ -1590,7 +1672,17 @@ def import_config():
         # Update Jinja template globals
         app.jinja_env.globals.update(CONFIG=CONFIG)
         
-        flash("Configuration imported successfully", "success")
+        # Log the import
+        audit_logger.log_change(
+            "configuration",
+            "imported",
+            file.filename,
+            session.get("session_id", "admin")
+        )
+        
+        flash("Configuration imported and validated successfully", "success")
+    except json.JSONDecodeError as e:
+        flash(f"Invalid JSON format: {str(e)}", "error")
     except Exception as e:
         flash(f"Error importing config: {str(e)}", "error")
     

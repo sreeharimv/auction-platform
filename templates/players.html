@@ -82,10 +82,10 @@
             <td>{{ p.role|dash_if_empty }}</td>
             <td>{{ p.batting_style|dash_if_empty }}</td>
             <td>{{ p.bowling_style|dash_if_empty }}</td>
-            <td>₹{{ format_currency(p.base_price) if p.base_price not in ('', None) else '-' }}</td>
+            <td>{{ CONFIG.auction.currency }}{{ format_currency(p.base_price) if p.base_price not in ('', None) else '-' }}</td>
             <td>{{ p.team|dash_if_empty }}</td>
             <td>{{ p.status|dash_if_empty }}</td>
-            <td>{{ '₹' + format_currency(p.sold_price) if p.sold_price not in ('', None, 0) else '-' }}</td>
+            <td>{{ CONFIG.auction.currency + format_currency(p.sold_price) if p.sold_price not in ('', None, 0) else '-' }}</td>
           </tr>
           {% endfor %}
         </tbody>

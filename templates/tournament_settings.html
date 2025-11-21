@@ -164,6 +164,29 @@
       </form>
     </div>
 
+    <!-- Admin Password -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Admin Password</h3>
+      <form method="post" action="{{ url_for('change_admin_password') }}">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; max-width: 500px;">
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Current Password:</label>
+            <input type="password" name="current_password" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 4px;">New Password:</label>
+            <input type="password" name="new_password" required minlength="8" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Minimum 8 characters</div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Confirm New Password:</label>
+            <input type="password" name="confirm_password" required minlength="8" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
+          </div>
+        </div>
+        <button type="submit" class="btn">Change Password</button>
+      </form>
+    </div>
+
     <!-- Reset & Backup -->
     <div class="card">
       <h3>Reset & Backup</h3>
