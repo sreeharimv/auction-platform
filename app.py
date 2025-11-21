@@ -1355,6 +1355,9 @@ def update_tournament_info():
     global CONFIG
     CONFIG = config
     
+    # Update Jinja template globals
+    app.jinja_env.globals.update(CONFIG=CONFIG)
+    
     flash("Tournament information updated", "success")
     return redirect(url_for("tournament_settings"))
 
@@ -1418,6 +1421,9 @@ def update_teams():
     TEAMS = config["teams"]["names"]
     TEAM_BUDGET = config["teams"]["budget"]
     
+    # Update Jinja template globals
+    app.jinja_env.globals.update(CONFIG=CONFIG)
+    
     flash("Team settings updated", "success")
     return redirect(url_for("tournament_settings"))
 
@@ -1451,6 +1457,9 @@ def update_auction_rules():
     CONFIG = config
     BASE_PRICE = config["auction"]["base_price"]
     
+    # Update Jinja template globals
+    app.jinja_env.globals.update(CONFIG=CONFIG)
+    
     flash("Auction rules updated", "success")
     return redirect(url_for("tournament_settings"))
 
@@ -1474,6 +1483,9 @@ def reset_config():
     TEAMS = default_config["teams"]["names"]
     TEAM_BUDGET = default_config["teams"]["budget"]
     BASE_PRICE = default_config["auction"]["base_price"]
+    
+    # Update Jinja template globals
+    app.jinja_env.globals.update(CONFIG=CONFIG)
     
     flash("Settings reset to defaults", "info")
     return redirect(url_for("tournament_settings"))
@@ -1574,6 +1586,9 @@ def import_config():
         TEAMS = config["teams"]["names"]
         TEAM_BUDGET = config["teams"]["budget"]
         BASE_PRICE = config["auction"]["base_price"]
+        
+        # Update Jinja template globals
+        app.jinja_env.globals.update(CONFIG=CONFIG)
         
         flash("Configuration imported successfully", "success")
     except Exception as e:

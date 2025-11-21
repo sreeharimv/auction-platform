@@ -10,8 +10,8 @@
 <body>
   <div id="lv-root" class="container" style="max-width: 1400px !important; margin: 20px auto 40px !important; padding: 0 20px !important;" data-player-id="{{ current_player.player_id if current_player else '' }}">
     <div class="header">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Palace Premier League" class="logo">
-      <h1>Palace Premier League</h1>
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ CONFIG.tournament.name }}" class="logo">
+      <h1>{{ CONFIG.tournament.name }}</h1>
     </div>
     
     <nav style="margin-top: 20px;">
