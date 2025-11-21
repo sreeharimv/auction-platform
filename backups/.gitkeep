@@ -1,0 +1,2 @@
+# This file ensures the backups directory is tracked in git
+# The directory itself will remain empty in the repository

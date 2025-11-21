@@ -3,3 +3,5 @@ pandas>=1.3.0
 Pillow>=8.0.0
 gunicorn>=20.0.0
 Werkzeug>=2.0.0
+bcrypt>=4.0.0
+python-dotenv>=1.0.0

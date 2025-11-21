@@ -10,3 +10,12 @@ pip-log.txt
 pip-delete-this-directory.txt
 .DS_Store
 *.log
+
+# Environment variables (sensitive data)
+.env
+
+# Configuration backups
+backups/
+
+# Database backups
+db_backups/
