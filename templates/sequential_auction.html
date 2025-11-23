@@ -71,7 +71,6 @@
         <div class="label" style="margin-bottom: 20px;">Current Player</div>
         <img src="{{ url_for('static', filename='players/' + (current_player.photo or 'default.png')) }}?v={{ current_player.player_id }}" alt="{{ current_player.name }}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #93c5fd; margin: 0 auto 20px; display: block; box-shadow: 0 8px 32px rgba(147, 197, 253, 0.3);" onerror="this.src='{{ url_for('static', filename='players/default.png') }}'">
         <div class="metric" style="font-size: 32px; margin-bottom: 8px;">{{ current_player.name }}</div>
-        <div style="color: #94a3b8; font-size: 16px;">{{ current_player.role }}</div>
       </div>
       <div class="card">
         <div class="label">Base Price</div>
@@ -280,11 +279,9 @@
               if (EXPECTED_ID && p.id && p.id !== EXPECTED_ID) {
                 const img = document.querySelector('img[style*="border-radius: 50%"]');
                 const nameEl = document.querySelector('.metric[style*="font-size: 32px"]');
-                const roleEl = nameEl ? nameEl.nextElementSibling : null;
                 const baseEl = document.getElementById('sa-base');
                 if (img) img.src = `/static/players/${p.photo || 'default.png'}?v=${p.id}`;
                 if (nameEl) nameEl.textContent = p.name;
-                if (roleEl) roleEl.textContent = p.role;
                 if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(p.base_price);
                 EXPECTED_ID = p.id;
                 CURRENT_PLAYER_ID = p.id;

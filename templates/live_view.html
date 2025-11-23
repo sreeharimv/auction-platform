@@ -30,7 +30,6 @@
       <div class="card" style="text-align: center; padding: 30px;">
         <img id="lv-photo" src="{{ url_for('static', filename='players/' + (current_player.photo or 'default.png')) }}?t={{ timestamp() }}" alt="{{ current_player.name }}" style="width: 240px; height: 240px; border-radius: 50%; object-fit: cover; border: 4px solid #93c5fd; margin: 0 auto 20px; display: block; box-shadow: 0 8px 32px rgba(147, 197, 253, 0.3);" onerror="this.src='{{ url_for('static', filename='players/default.png') }}'">
         <div id="lv-name" class="metric" style="font-size: 32px;">{{ current_player.name }}</div>
-        <div id="lv-role" style="color: #94a3b8; font-size: 16px;">{{ current_player.role }}</div>
       </div>
 
       <!-- Right column: Card with two rows + row 3 (eligible teams) -->
@@ -155,7 +154,6 @@
                 if (s.player) {
                   const photoEl = document.getElementById('lv-photo');
                   const nameEl = document.getElementById('lv-name');
-                  const roleEl = document.getElementById('lv-role');
                   const baseEl = document.getElementById('lv-base');
                   const bidEl = document.getElementById('lv-bid');
                   const leaderEl = document.getElementById('lv-leader');
@@ -164,7 +162,6 @@
                   
                   if (photoEl) photoEl.src = `/static/players/${s.player.photo || 'default.png'}?t=${Date.now()}`;
                   if (nameEl) nameEl.textContent = s.player.name;
-                  if (roleEl) roleEl.textContent = s.player.role;
                   if (baseEl) baseEl.textContent = '₹' + formatCurrencyShort(s.player.base_price);
                   
                   // Reset auction state to new player's initial state
