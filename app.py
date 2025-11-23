@@ -822,7 +822,7 @@ def start_sequential():
     flash(f"Sequential auction started! {len(sequential_auction['player_sequence'])} players in queue.", "success")
     return redirect(url_for("sequential_auction_page"))
 
-@app.route("/sequential-auction")
+@app.route("/sequential-auction", methods=["GET", "POST"])
 def sequential_auction_page():
     import time
     start_time = time.time()
@@ -834,6 +834,37 @@ def sequential_auction_page():
     if not sequential_auction["active"]:
         flash("No sequential auction in progress!", "error")
         return redirect(url_for("auction"))
+    
+    # Handle POST requests (update_bid action)
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "update_bid":
+            team = request.form.get("team")
+            bid_amount_str = request.form.get("bid_amount", "").strip()
+            
+            if not team or not bid_amount_str:
+                flash("Team and bid amount are required", "error")
+                return redirect(url_for("sequential_auction_page"))
+            
+            try:
+                # Parse currency input (supports formats like "1.05Cr", "65L", or plain numbers)
+                bid_amount = parse_currency_input(bid_amount_str)
+                
+                if bid_amount <= 0:
+                    flash("Bid amount must be positive", "error")
+                    return redirect(url_for("sequential_auction_page"))
+                
+                # Update current auction state
+                current_auction["current_bid"] = bid_amount
+                current_auction["current_team"] = team
+                current_auction["status"] = "bidding"
+                broadcast_state()
+                
+                flash(f"Bid updated: {team} - ₹{format_indian_currency(bid_amount)}", "success")
+            except (ValueError, TypeError) as e:
+                flash(f"Invalid bid amount format: {str(e)}", "error")
+            
+            return redirect(url_for("sequential_auction_page"))
     
     df = load_players()
     current_player = None
