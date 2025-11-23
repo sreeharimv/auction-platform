@@ -4,7 +4,46 @@
 
 If your tournament data (players, teams, configuration) resets to defaults after each deployment, it's because the database and config files are being overwritten from git.
 
-## Solution: Use Persistent Storage
+## ✅ Current Solution: Git-Based Data Storage (Free)
+
+This project is configured to store tournament data in git. This means:
+- ✅ **Free** - No paid storage needed
+- ✅ **Simple** - No complex setup
+- ✅ **Backed up** - Your data is version controlled
+- ⚠️ **Manual** - You need to commit after changes
+
+### How It Works
+
+1. Your `players.db` and `config.json` are tracked in git
+2. When you deploy, the latest committed version is used
+3. After making changes, commit and push to preserve data
+
+### Quick Start
+
+After making changes to your tournament (players, settings, auction results):
+
+**Linux/Mac:**
+```bash
+./save_tournament_data.sh
+```
+
+**Windows:**
+```
+save_tournament_data.bat
+```
+
+**Or manually:**
+```bash
+git add players.db config.json
+git commit -m "Update tournament data"
+git push
+```
+
+Then redeploy (or wait for auto-deploy if enabled).
+
+---
+
+## Alternative: Use Persistent Storage (Paid)
 
 ### For Render.com
 

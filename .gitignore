@@ -20,9 +20,6 @@ backups/
 # Database backups
 db_backups/
 
-# Database and configuration (use persistent storage in production)
-players.db
-config.json
-
-# Keep example/template files
-!config.json.example
+# Note: players.db and config.json are tracked in git for free deployment
+# This means your tournament data is version controlled
+# Commit and push after making changes to preserve data across deployments

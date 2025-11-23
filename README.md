@@ -99,9 +99,22 @@ Access via `/tournament-settings` to configure:
 
 ### Important: Data Persistence
 
-⚠️ **Your tournament data will reset on each deployment unless you use persistent storage!**
+✅ **This project stores tournament data in git** - your data is version controlled and backed up!
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions on setting up persistent storage.
+After making changes (adding players, running auction, updating settings):
+```bash
+./save_tournament_data.sh    # Linux/Mac
+save_tournament_data.bat      # Windows
+```
+
+Or manually:
+```bash
+git add players.db config.json
+git commit -m "Update tournament data"
+git push
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for more details and alternative storage options.
 
 ### Quick Deployment Guide
 
