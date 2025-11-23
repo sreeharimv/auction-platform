@@ -97,19 +97,46 @@ Access via `/tournament-settings` to configure:
 
 ## Deployment
 
-### Render Deployment
-1. Connect GitHub repository
-2. Add environment variables in Render dashboard:
-   - `FLASK_SECRET_KEY`
-   - `ADMIN_PASSWORD_HASH`
-3. Set build command: `pip install -r requirements.txt`
-4. Set start command: `gunicorn app:app`
+### Important: Data Persistence
 
-### Environment Variables on Render
-Go to your service → Environment → Add Environment Variables:
+⚠️ **Your tournament data will reset on each deployment unless you use persistent storage!**
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions on setting up persistent storage.
+
+### Quick Deployment Guide
+
+#### Render.com
+1. Connect GitHub repository
+2. **Create a Persistent Disk** (1GB, mount at `/data`)
+3. Add environment variables:
+   ```
+   FLASK_SECRET_KEY=<your-secret-key>
+   ADMIN_PASSWORD_HASH=<your-password-hash>
+   DATABASE_PATH=/data/players.db
+   CONFIG_PATH=/data/config.json
+   ```
+4. Set build command: `pip install -r requirements.txt`
+5. Set start command: `gunicorn app:app`
+6. After first deployment, copy initial files to persistent storage via Shell
+
+#### Railway.app
+1. Connect GitHub repository
+2. **Add a Volume** (mount at `/data`)
+3. Add environment variables (same as above)
+4. Deploy and copy initial files to volume
+
+### Environment Variables
+
+Required:
 ```
 FLASK_SECRET_KEY=<your-secret-key>
 ADMIN_PASSWORD_HASH=<your-password-hash>
+```
+
+Optional (for persistent storage):
+```
+DATABASE_PATH=/data/players.db
+CONFIG_PATH=/data/config.json
 ```
 
 ## Tech Stack

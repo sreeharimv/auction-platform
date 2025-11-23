@@ -430,7 +430,8 @@ def compute_starting_team():
         pass
     return None
 
-DB_FILE = os.path.join(os.path.dirname(__file__), "players.db")
+# Database file path - can be overridden with DATABASE_PATH environment variable
+DB_FILE = os.getenv('DATABASE_PATH', os.path.join(os.path.dirname(__file__), "players.db"))
 
 def init_db():
     """Initialize SQLite database with players table"""

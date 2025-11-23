@@ -19,3 +19,10 @@ backups/
 
 # Database backups
 db_backups/
+
+# Database and configuration (use persistent storage in production)
+players.db
+config.json
+
+# Keep example/template files
+!config.json.example

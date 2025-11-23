@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     """Manages configuration loading, validation, and persistence"""
     
-    CONFIG_FILE = "config.json"
+    # Config file path - can be overridden with CONFIG_PATH environment variable
+    CONFIG_FILE = os.getenv('CONFIG_PATH', 'config.json')
     BACKUP_DIR = "backups"
     MAX_BACKUPS = 10
     
