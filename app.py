@@ -1326,10 +1326,14 @@ def upload_player_photo():
         file.seek(0)  # Reset to beginning
         
         if file_size > 5 * 1024 * 1024:  # 5MB limit
-            return jsonify({"success": False, "error": "File too large. Max 5MB allowed."})
+            size_mb = file_size / 1024 / 1024
+            return jsonify({"success": False, "error": f"File too large ({size_mb:.2f}MB). Maximum size is 5MB."})
         
         # Open and resize image
-        image = Image.open(file)
+        try:
+            image = Image.open(file)
+        except Exception as e:
+            return jsonify({"success": False, "error": "Invalid image file. Please upload a valid image (JPEG, PNG, GIF, etc.)"})
         
         # Convert to RGB if necessary
         if image.mode in ('RGBA', 'P'):

@@ -221,8 +221,31 @@
     
     function uploadPhoto(playerId, input) {
       if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Client-side validation
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+          showError('File too large! Maximum size is 5MB. Your file is ' + (file.size / 1024 / 1024).toFixed(2) + 'MB');
+          input.value = ''; // Clear the input
+          return;
+        }
+        
+        // Check if it's an image
+        if (!file.type.startsWith('image/')) {
+          showError('Please select an image file (JPEG, PNG, GIF, etc.)');
+          input.value = '';
+          return;
+        }
+        
+        // Show loading indicator
+        const uploadBtn = input.parentElement.querySelector('button');
+        const originalText = uploadBtn.textContent;
+        uploadBtn.textContent = '⏳';
+        uploadBtn.disabled = true;
+        
         const formData = new FormData();
-        formData.append('photo', input.files[0]);
+        formData.append('photo', file);
         formData.append('player_id', playerId);
         
         fetch('/upload-player-photo', {
@@ -232,15 +255,38 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            location.reload();
+            showSuccess('Photo uploaded successfully!');
+            setTimeout(() => location.reload(), 1000);
           } else {
-            alert('Error uploading photo: ' + data.error);
+            showError('Upload failed: ' + data.error);
+            uploadBtn.textContent = originalText;
+            uploadBtn.disabled = false;
           }
         })
         .catch(error => {
-          alert('Error uploading photo');
+          showError('Network error. Please check your connection and try again.');
+          uploadBtn.textContent = originalText;
+          uploadBtn.disabled = false;
         });
       }
+    }
+    
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'flash error';
+      errorDiv.textContent = message;
+      errorDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 500px;';
+      document.body.appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+    
+    function showSuccess(message) {
+      const successDiv = document.createElement('div');
+      successDiv.className = 'flash success';
+      successDiv.textContent = message;
+      successDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 500px;';
+      document.body.appendChild(successDiv);
+      setTimeout(() => successDiv.remove(), 3000);
     }
     
     function resetAllPlayers() {
