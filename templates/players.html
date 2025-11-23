@@ -26,16 +26,6 @@
     <div class="card" style="margin-bottom: 20px;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
         <div>
-          <label style="display: block; margin-bottom: 4px;">Filter by Role:</label>
-          <select id="roleFilter" onchange="filterPlayers()" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
-            <option value="">All Roles</option>
-            <option value="Batsman">Batsman</option>
-            <option value="Bowler">Bowler</option>
-            <option value="All-Rounder">All-Rounder</option>
-            <option value="Wicket Keeper">Wicket Keeper</option>
-          </select>
-        </div>
-        <div>
           <label style="display: block; margin-bottom: 4px;">Filter by Status:</label>
           <select id="statusFilter" onchange="filterPlayers()" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
             <option value="">All Status</option>
@@ -65,7 +55,6 @@
           <tr>
             <th>ID</th>
             <th>Name</th>
-            <th>Role</th>
             <th>Batting</th>
             <th>Bowling</th>
             <th>Base Price</th>
@@ -76,10 +65,9 @@
         </thead>
         <tbody>
           {% for p in players %}
-          <tr class="{{ 'sold' if (p.status|string).lower() == 'sold' else '' }}" data-role="{{ p.role or '' }}" data-status="{{ p.status or '' }}" data-team="{{ p.team or '' }}">
+          <tr class="{{ 'sold' if (p.status|string).lower() == 'sold' else '' }}" data-status="{{ p.status or '' }}" data-team="{{ p.team or '' }}">
             <td>{{ p.player_id }}</td>
             <td>{{ p.name|dash_if_empty }}</td>
-            <td>{{ p.role|dash_if_empty }}</td>
             <td>{{ p.batting_style|dash_if_empty }}</td>
             <td>{{ p.bowling_style|dash_if_empty }}</td>
             <td>{{ CONFIG.auction.currency }}{{ format_currency(p.base_price) if p.base_price not in ('', None) else '-' }}</td>
@@ -95,22 +83,19 @@
   
   <script>
     function filterPlayers() {
-      const roleFilter = document.getElementById('roleFilter').value;
       const statusFilter = document.getElementById('statusFilter').value;
       const teamFilter = document.getElementById('teamFilter').value;
       
       const rows = document.querySelectorAll('tbody tr');
       
       rows.forEach(row => {
-        const role = row.getAttribute('data-role');
         const status = row.getAttribute('data-status');
         const team = row.getAttribute('data-team');
         
-        const roleMatch = !roleFilter || role === roleFilter;
         const statusMatch = !statusFilter || status === statusFilter;
         const teamMatch = !teamFilter || team === teamFilter;
         
-        if (roleMatch && statusMatch && teamMatch) {
+        if (statusMatch && teamMatch) {
           row.style.display = '';
         } else {
           row.style.display = 'none';
@@ -119,7 +104,6 @@
     }
     
     function clearFilters() {
-      document.getElementById('roleFilter').value = '';
       document.getElementById('statusFilter').value = '';
       document.getElementById('teamFilter').value = '';
       filterPlayers();
