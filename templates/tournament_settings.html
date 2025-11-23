@@ -187,12 +187,34 @@
       </form>
     </div>
 
-    <!-- Reset & Backup -->
+    <!-- Data Export & Backup -->
     <div class="card">
-      <h3>Reset & Backup</h3>
+      <h3>Data Export & Backup</h3>
+      <p style="color: #94a3b8; font-size: 14px; margin-bottom: 16px;">
+        ⚠️ <strong>Important:</strong> Download your data before deploying to preserve changes made via the web interface.
+      </p>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <a href="{{ url_for('export_database') }}" class="btn" style="background: #10b981;">📥 Download Database</a>
+        <a href="{{ url_for('export_config') }}" class="btn secondary">Export Config</a>
+        <a href="{{ url_for('export_players') }}" class="btn secondary">Export Players CSV</a>
+      </div>
+      <div style="margin-top: 16px; padding: 12px; background: #0b1220; border: 1px solid #334155; border-radius: 8px;">
+        <strong style="color: #fbbf24;">💡 Workflow:</strong>
+        <ol style="color: #94a3b8; font-size: 13px; margin: 8px 0 0 20px; line-height: 1.6;">
+          <li>Make changes via web (add players, run auction, etc.)</li>
+          <li>Click "Download Database" to save current data</li>
+          <li>Replace local <code>players.db</code> with downloaded file</li>
+          <li>Commit and push: <code>git add players.db && git commit -m "Update data" && git push</code></li>
+          <li>Deploy (your changes will persist)</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Reset & Import -->
+    <div class="card">
+      <h3>Reset & Import</h3>
       <div style="display: flex; gap: 12px; align-items: center;">
         <button onclick="resetToDefaults()" class="btn" style="background: #dc2626;">Reset to Defaults</button>
-        <a href="{{ url_for('export_config') }}" class="btn secondary">Export Config</a>
         <form method="post" enctype="multipart/form-data" action="{{ url_for('import_config') }}" style="display: inline;">
           <input type="file" name="config_file" accept=".json" style="margin-right: 8px;">
           <button type="submit" class="btn secondary">Import Config</button>

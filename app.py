@@ -1611,6 +1611,18 @@ def export_config():
     
     return send_file(json_bytes, mimetype='application/json', as_attachment=True, download_name=filename)
 
+@app.route("/export-database")
+def export_database():
+    """Download the current database file"""
+    if not session.get("is_admin"):
+        return redirect(url_for("admin"))
+    
+    # Generate timestamped filename
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"players_backup_{timestamp}.db"
+    
+    return send_file(DB_FILE, mimetype='application/x-sqlite3', as_attachment=True, download_name=filename)
+
 # Removed player-card and team-card endpoints as per requirements
 
 @app.route("/live-version")

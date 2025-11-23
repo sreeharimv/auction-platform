@@ -4,38 +4,45 @@
 
 Your tournament data (players, config, auction results) is tracked in git and will persist across deployments.
 
-## 📝 Workflow
+## 📝 Two Workflows
 
-### 1. Make Changes
-- Add/edit players
-- Update tournament settings
-- Run your auction
-- Assign captains
+### Workflow A: Changes Made Locally (Recommended)
 
-### 2. Save Your Data
+If you edit files locally (database, config):
 
-**Easy Way (Recommended):**
+1. **Make changes locally**
+2. **Save data:**
+   ```bash
+   ./save_tournament_data.sh    # Linux/Mac
+   save_tournament_data.bat      # Windows
+   ```
+3. **Deploy**
 
-Linux/Mac:
-```bash
-./save_tournament_data.sh
-```
+### Workflow B: Changes Made via Web
 
-Windows:
-```
-save_tournament_data.bat
-```
+If you make changes through the web interface:
 
-**Manual Way:**
-```bash
-git add players.db config.json
-git commit -m "Update tournament data"
-git push
-```
+1. **Make changes via web** (add players, run auction, etc.)
+2. **Download database:**
+   - Go to `/tournament-settings`
+   - Click "📥 Download Database"
+   - Save the file
+3. **Replace local file:**
+   - Replace your local `players.db` with the downloaded file
+4. **Commit and push:**
+   ```bash
+   git add players.db config.json
+   git commit -m "Update tournament data from web"
+   git push
+   ```
+5. **Deploy**
 
-### 3. Deploy
-- If auto-deploy is enabled, your changes will deploy automatically
-- Otherwise, manually trigger a deployment on your platform
+## ⚠️ IMPORTANT
+
+**If you make changes via web and deploy without downloading:**
+- Your web changes will be LOST
+- The deployment will use the old database from git
+- Always download before deploying!
 
 ## 🎯 When to Save Data
 
