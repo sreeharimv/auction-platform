@@ -1288,7 +1288,8 @@ def download_template():
         'base_price': [5000000, 5000000, 5000000],
         'age': [25, 28, 30],
         'batting_style': ['Right-hand Bat', 'Right-hand Bat', 'Left-hand Bat'],
-        'bowling_style': ['', 'Right-arm Fast', 'Right-arm Off']
+        'bowling_style': ['', 'Right-arm Fast', 'Right-arm Off'],
+        'photo': ['player1.jpg', 'player2.jpg', '']
     }
     
     df = pd.DataFrame(template_data)

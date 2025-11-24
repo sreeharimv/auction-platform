@@ -44,8 +44,10 @@
         </div>
         <div style="font-size: 14px; color: #94a3b8;">
           <strong>Required columns:</strong> name, role, base_price<br>
-          <strong>Optional columns:</strong> age, batting_style, bowling_style<br>
-          <a href="{{ url_for('download_template') }}" style="color: #93c5fd;">Download CSV Template</a>
+          <strong>Optional columns:</strong> age, batting_style, bowling_style, photo<br>
+          <strong>Photo column:</strong> Filename only (e.g., "player1.jpg") - files must exist in static/players/ folder<br>
+          <a href="{{ url_for('download_template') }}" style="color: #93c5fd;">Download CSV Template</a> • 
+          <a href="/CSV_IMPORT_GUIDE.md" target="_blank" style="color: #93c5fd;">Photo Import Guide</a>
         </div>
       </form>
     </div>
