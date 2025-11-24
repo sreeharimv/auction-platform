@@ -154,9 +154,9 @@
                   <input type="hidden" name="player_id" value="{{ p.player_id }}">
                   <select id="team_{{ p.player_id }}" name="team" required style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 160px;">
                     <option value="">Select Team</option>
-                    <option value="Palace Tuskers">Palace Tuskers</option>
-                    <option value="Palace Titans">Palace Titans</option>
-                    <option value="Palace Warriors">Palace Warriors</option>
+                    {% for team in teams %}
+                    <option value="{{ team }}">{{ team }}</option>
+                    {% endfor %}
                   </select>
                 </form>
               </td>

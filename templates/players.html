@@ -38,9 +38,9 @@
           <label style="display: block; margin-bottom: 4px;">Filter by Team:</label>
           <select id="teamFilter" onchange="filterPlayers()" style="background: #0b1220; border: 1px solid #334155; color: #e2e8f0; padding: 8px; border-radius: 8px; width: 100%;">
             <option value="">All Teams</option>
-            <option value="Palace Tuskers">Palace Tuskers</option>
-            <option value="Palace Titans">Palace Titans</option>
-            <option value="Palace Warriors">Palace Warriors</option>
+            {% for team in CONFIG.teams.names %}
+            <option value="{{ team }}">{{ team }}</option>
+            {% endfor %}
           </select>
         </div>
         <div>
