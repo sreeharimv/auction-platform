@@ -1153,8 +1153,10 @@ def upload_players():
             df['sold_price'] = 0
         if 'sold_at' not in df.columns:
             df['sold_at'] = ''
+        if 'photo' not in df.columns:
+            df['photo'] = ''
         
-        # Save to CSV
+        # Save to database
         save_players(df)
         flash(f"Successfully uploaded {len(df)} players", "success")
         
