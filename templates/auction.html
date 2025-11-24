@@ -125,7 +125,7 @@
     {% endif %}
     {% if is_admin %}
     <div style="margin-bottom: 16px; font-size: 14px; color: #94a3b8;">
-      <strong>Increment Slabs:</strong> ₹50L-1Cr: 10L | ₹1-2Cr: 25L | ₹2Cr+: 50L
+      <strong>Increment Slabs:</strong> {{ get_increment_slabs_display() }}
     </div>
     {% endif %}
     <div class="table-wrap">

@@ -266,9 +266,26 @@ def get_auction_price_options(base_price):
     
     return options
 
+def get_increment_slabs_display():
+    """Generate human-readable increment slabs text from config"""
+    config = load_config()
+    base_price = config["auction"]["base_price"]
+    increments = config["auction"]["increments"]
+    
+    # Format tier ranges and increments
+    tier1_range = f"{format_indian_currency(base_price)}-{format_indian_currency(base_price * 2)}"
+    tier2_range = f"{format_indian_currency(base_price * 2)}-{format_indian_currency(base_price * 4)}"
+    tier3_range = f"{format_indian_currency(base_price * 4)}+"
+    
+    tier1_inc = format_indian_currency(increments[0])
+    tier2_inc = format_indian_currency(increments[1])
+    tier3_inc = format_indian_currency(increments[2])
+    
+    return f"{tier1_range}: {tier1_inc} | {tier2_range}: {tier2_inc} | {tier3_range}: {tier3_inc}"
+
 # Make functions available in templates
 import time
-app.jinja_env.globals.update(int=int, format_currency=format_indian_currency, get_bid_increments=get_bid_increments, get_auction_price_options=get_auction_price_options, timestamp=lambda: int(time.time()), CONFIG=CONFIG)
+app.jinja_env.globals.update(int=int, format_currency=format_indian_currency, get_bid_increments=get_bid_increments, get_auction_price_options=get_auction_price_options, get_increment_slabs_display=get_increment_slabs_display, timestamp=lambda: int(time.time()), CONFIG=CONFIG)
 
 # Add filter for replacing empty values with dash
 @app.template_filter('dash_if_empty')

@@ -1,26 +1,27 @@
 {
   "tournament": {
-    "name": "Palace Premier League",
+    "name": "MOCC Mini Bash 2025",
     "logo": "logo.png"
   },
   "teams": {
-    "count": 3,
+    "count": 4,
     "names": [
-      "Palace Tuskers",
-      "Palace Titans",
-      "Palace Warriors"
+      "Dolphins",
+      "Sharks",
+      "Seals",
+      "Whales"
     ],
-    "budget": 120000000,
-    "min_players": 9,
-    "max_players": 9
+    "budget": 150000000,
+    "min_players": 11,
+    "max_players": 11
   },
   "auction": {
     "base_price": 5000000,
     "currency": "\u20b9",
     "increments": [
+      500000,
       1000000,
-      2500000,
-      2500000
+      2000000
     ]
   },
   "players": {
