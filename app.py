@@ -1156,9 +1156,30 @@ def upload_players():
         if 'photo' not in df.columns:
             df['photo'] = ''
         
+        # Process photo filenames
+        # If photo column has filenames, validate they exist in static/players/
+        photo_warnings = []
+        if 'photo' in df.columns:
+            for idx, row in df.iterrows():
+                photo_filename = str(row.get('photo', '')).strip()
+                if photo_filename and photo_filename != 'nan':
+                    # Check if file exists
+                    photo_path = os.path.join(app.static_folder, 'players', photo_filename)
+                    if not os.path.exists(photo_path):
+                        photo_warnings.append(f"{row['name']}: {photo_filename}")
+                        # Set to empty if file doesn't exist
+                        df.at[idx, 'photo'] = ''
+        
         # Save to database
         save_players(df)
-        flash(f"Successfully uploaded {len(df)} players", "success")
+        
+        success_msg = f"Successfully uploaded {len(df)} players"
+        if photo_warnings:
+            success_msg += f". Warning: {len(photo_warnings)} photo(s) not found in static/players/ folder: {', '.join(photo_warnings[:3])}"
+            if len(photo_warnings) > 3:
+                success_msg += f" and {len(photo_warnings) - 3} more"
+        
+        flash(success_msg, "success" if not photo_warnings else "warning")
         
     except Exception as e:
         flash(f"Error processing CSV: {str(e)}", "error")

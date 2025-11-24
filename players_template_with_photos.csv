@@ -1,0 +1,6 @@
+name,role,base_price,age,batting_style,bowling_style,photo
+Sreekanth,Batsman,5000000,44,Left-hand Bat,Right-arm Medium,sreekanth.jpg
+Appu,All-Rounder,5000000,,Right-hand Bat,Right-arm Fast,appu.jpg
+Marsh,Batsman,5000000,,Right-hand Bat,,marsh.jpg
+Govind,Batsman,5000000,,Right-hand Bat,,govind.jpg
+Raman,Batsman,5000000,,Right-hand Bat,,raman.jpg
